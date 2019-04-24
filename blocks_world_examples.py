@@ -25,7 +25,7 @@ First, test pyhop on some of the operators and smaller tasks
 ****************************************
 """)
 
-print("- Define state1: a on b, b on tale, c on table")
+print("- Define state1: a on b, b on table, c on table")
 
 """
 A state is a collection of all of the state variables and their values. Every state variable in the domain should have a value.
@@ -55,7 +55,7 @@ print("""
 ****************************************
 Run pyhop on two block-stacking problems, both of which start in state1.
 The goal for the 2nd problem omits some of the conditions in the goal
-of the 1st problemk, but those conditions will need to be achieved
+of the 1st problem, but those conditions will need to be achieved
 anyway, so both goals should produce the same plan.
 ****************************************
 """)
@@ -63,7 +63,9 @@ anyway, so both goals should produce the same plan.
 print("- Define goal1a:")
 
 """
-A goal is a collection of some (but not necessarily all) of the state variables and their desired values. Below, both goal1a and goal1b specify c on b, and b on a. The difference is that goal1a also specifies that a is on table and the hand is empty.
+A goal is a collection of some (but not necessarily all) of the state variables and their desired values.
+Below, both goal1a and goal1b specify c on b, and b on a. 
+The difference is that goal1a also specifies that a is on table and the hand is empty.
 """
 
 goal1a = Goal('goal1a')

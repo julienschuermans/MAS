@@ -1,4 +1,6 @@
 from pyhop import *
+from blocks_world_tools import Action
+
 import random
 
 class Agent():
@@ -19,7 +21,7 @@ class Agent():
         self.possible_actions = actions
 
     def plan(self,tasks):
-        self.partial_plan = pyhop(self.observed_state,tasks,verbose=0)
+        self.partial_plan = pyhop(self.observed_state,tasks,self.__name__,verbose=0)
 
     def evaluate_dependencies(self):
         # TODO: process self.partial_plan to detect dependencies between actions
@@ -57,8 +59,6 @@ class Agent():
 
 
 
-
-
 class MultiAgentNegotiation():
     """A class of agents communicating to develop a common plan"""
 
@@ -69,14 +69,22 @@ class MultiAgentNegotiation():
     def add_agent(self,agent):
         self.agents.append(agent)
 
+    def add_agents(self, agents):
+        # appends a list of agents to the existing list
+        self.agents += agents
+
     def find_resolution(self):
-        assert(len(self.agents)==2)
+        all_agents_happy = True
 
-        a0_happy = self.agents[0].check_final_plan()
-        a1_happy = self.agents[1].check_final_plan()
+        for agent in self.agents:
+            happy = agent.check_final_plan()
+            if not happy:
+                all_agents_happy = False
 
-        while not (a0_happy and a1_happy):
+        while not all_agents_happy:
             # agents play rock-paper-scissors to see who talks first
+
+            # TODO pick a random agent from the list
             if self.agents[0].generate_random_number() < self.agents[1].generate_random_number():
                 a0 = self.agents[0]
                 a1 = self.agents[1]
@@ -84,7 +92,8 @@ class MultiAgentNegotiation():
                 a0 = self.agents[1]
                 a1 = self.agents[0]
             
-            (action, timeslot) = a0.make_proposal()
+            (action, timeslot) = a0.make_proposal() 
+            #an Action is a combination of: (1) an agent, (2) a tuple with a operator name and some arguments
             evaluation = a1.evaluate_proposal(action,timeslot)
 
             if evaluation == True:
@@ -97,3 +106,5 @@ class MultiAgentNegotiation():
 
             a0_happy = a0.check_final_plan()
             a1_happy = a1.check_final_plan()
+        
+        return self.agents[0].final_plan

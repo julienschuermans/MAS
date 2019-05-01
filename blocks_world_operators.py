@@ -19,36 +19,36 @@ The blocks-world operators use three state variables:
 - holding = name of the block being held, or False if the hand is empty.
 """
 
-def pickup(state,b):
-    if state.pos[b] == 'table' and state.clear[b] == True and state.holding == False:
+def pickup(state,b,agent_name):
+    if state.pos[b] == 'table' and state.clear[b] == True and state.holding[agent_name] == False:
         state.pos[b] = 'hand'
         state.clear[b] = False
-        state.holding = b
+        state.holding[agent_name] = b
         return state
     else: return False
 
-def unstack(state,b,c):
-    if state.pos[b] == c and c != 'table' and state.clear[b] == True and state.holding == False:
+def unstack(state,b,c,agent_name):
+    if state.pos[b] == c and c != 'table' and state.clear[b] == True and state.holding[agent_name] == False:
         state.pos[b] = 'hand'
         state.clear[b] = False
-        state.holding = b
+        state.holding[agent_name] = b
         state.clear[c] = True
         return state
     else: return False
     
-def putdown(state,b):
+def putdown(state,b,agent_name):
     if state.pos[b] == 'hand':
         state.pos[b] = 'table'
         state.clear[b] = True
-        state.holding = False
+        state.holding[agent_name] = False
         return state
     else: return False
 
-def stack(state,b,c):
+def stack(state,b,c,agent_name):
     if state.pos[b] == 'hand' and state.clear[c] == True:
         state.pos[b] = c
         state.clear[b] = True
-        state.holding = False
+        state.holding[agent_name] = False
         state.clear[c] = False
         return state
     else: return False

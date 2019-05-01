@@ -191,17 +191,17 @@ def print_methods(mlist=methods):
 ############################################################
 # The actual planner
 
-def pyhop(state,tasks,verbose=0):
+def pyhop(state,tasks,agent_name,verbose=0):
     """
     Try to find a plan that accomplishes tasks in state. 
     If successful, return the plan. Otherwise return False.
     """
     if verbose>0: print('** pyhop, verbose={}: **\n   state = {}\n   tasks = {}'.format(verbose, state.__name__, tasks))
-    result = seek_plan(state,tasks,[],0,verbose)
+    result = seek_plan(state,tasks,agent_name,[],0,verbose)
     if verbose>0: print('** result =',result,'\n')
     return result
 
-def seek_plan(state,tasks,plan,depth,verbose=0):
+def seek_plan(state,tasks,agent_name,plan,depth,verbose=0):
     """
     Workhorse for pyhop. state and tasks are as in pyhop.
     - plan is the current partial plan.
@@ -216,12 +216,12 @@ def seek_plan(state,tasks,plan,depth,verbose=0):
     if task1[0] in operators:
         if verbose>2: print('depth {} action {}'.format(depth,task1))
         operator = operators[task1[0]]
-        newstate = operator(copy.deepcopy(state),*task1[1:])
+        newstate = operator(copy.deepcopy(state),*task1[1:],agent_name)
         if verbose>2:
             print('depth {} new state:'.format(depth))
             print_state(newstate)
         if newstate:
-            solution = seek_plan(newstate,tasks[1:],plan+[task1],depth+1,verbose)
+            solution = seek_plan(newstate,tasks[1:],agent_name,plan+[task1],depth+1,verbose)
             if solution != False:
                 return solution
     if task1[0] in methods:
@@ -233,7 +233,7 @@ def seek_plan(state,tasks,plan,depth,verbose=0):
             if verbose>2:
                 print('depth {} new tasks: {}'.format(depth,subtasks))
             if subtasks != False:
-                solution = seek_plan(state,subtasks+tasks[1:],plan,depth+1,verbose)
+                solution = seek_plan(state,subtasks+tasks[1:],agent_name,plan,depth+1,verbose)
                 if solution != False:
                     return solution
     if verbose>2: print('depth {} returns failure'.format(depth))

@@ -107,7 +107,7 @@ def put_m(state,b1,b2):
     Generate either a putdown or a stack subtask for b1.
     b2 is b1's destination: either the table or another block.
     """
-    if state.holding == b1:
+    if b1 in state.holding.values(): #dirty hack: "if someone is holding b1"
         if b2 == 'table':
                 return [('putdown',b1)]
         else:

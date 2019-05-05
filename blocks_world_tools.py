@@ -9,6 +9,9 @@ class Action():
         self.operator = action_tuple[0]
         self.arguments = action_tuple[1:]
 
+    def __str__(self):
+        return " *" + self.agent.__name__ + "-" + self.operator + str(self.arguments) + "*"
+
 class StateSimulation():
 
     def __init__(self, initialState):
@@ -21,7 +24,7 @@ class StateSimulation():
             operator = pyhop.operators[action.operator]
             newState = operator(copy.deepcopy(self.state),*action.arguments,action.agent.__name__)
             if newState == False:
-                raise RuntimeError("Tried to apply illegal operator during simulation.")
+                raise RuntimeError("Preconditions have been violated!.")
             else:
                 self.state = newState
             self.step += 1
@@ -37,23 +40,8 @@ class StateSimulation():
         for action in actions:
             self.update(action)
         self.step = start + 1
-
-
-class Dependency():
-    def __init__(self, action_1, action_2):
-        self.action_1 = action_1
-        self.action_2 = action_2
     
-
-class Conflict():
-    def __init__(self,type='concurrent'):
-        self.type = type
-
-class DependencyMap():
-    def __init__(self, dependencies):
-        self.dependencies = dependencies
-
-class ConflictMap():
-    def __init__(self,conflicts):
-        self.type = type
+    def check_goal(self, goalState):
+        return self.state == goalState #TODO should probably do this another way:
+        # separately check all variable bindings in the goalstate
 

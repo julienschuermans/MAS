@@ -40,12 +40,14 @@ class Agent():
         # calculate 'current simulated state' = apply state simulation updates of all
         # steps in the final_plan to the initial state. This is guaranteed to be a valid state,
         # that does not conflict with any agents' partial plans.
-        sim = StateSimulation(self.observed_state)
-        for step in range(timeslot):
+
+        sim = StateSimulation(self.observed_state) # start from the initial state
+
+        for step in range(timeslot): #execute all actions with t<timeslot that have already been agreed upon
             if step in self.final_plan.keys():
                 if len(self.final_plan[step]) == 1: #only 1 action at this step
                     sim.update(self.final_plan[step][0])
-                elif len(self.final_plan[step]) > 1:
+                elif len(self.final_plan[step]) > 1: # multiple in parallel
                     sim.update_parallel(self.final_plan[step])
                 else:
                     raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -54,11 +56,10 @@ class Agent():
         # with the agent's partial plans, it performs a simulation to see whether all following actions
         # remain possible. All following actions are independent if their preconditions can still be met.
 
-        # apply action currently under investigation
-        # logging.debug('Proposed action: ' + str(action) + ' at t=' + str(timeslot))
+        # apply action currently under investigation at t=timeslot
         if timeslot in self.final_plan.keys():
             try:
-                sim.update_parallel(self.final_plan[timeslot] + [action])
+                sim.update_parallel(self.final_plan[timeslot] + [action]) # perform the action in parallel with those already scheduled
             except RuntimeError as e:
                 print(e)
                 return False
@@ -69,7 +70,8 @@ class Agent():
                 print(e)
                 return False
 
-        # apply all other actions with t>timeslot that were already in the final_plan
+        # apply all other actions with t>timeslot that were already in the final_plan.
+        # if any of them return false, the insertion of the action has ruined some dependency.
         if len(self.final_plan.keys()) > 0:
             for step in range(timeslot+1, max(self.final_plan.keys())+1):
                 if step in self.final_plan.keys():
@@ -79,7 +81,7 @@ class Agent():
                         except RuntimeError as e:
                             print(e)
                             return False
-                    elif len(self.final_plan[step]) > 1:
+                    elif len(self.final_plan[step]) > 1:  # multiple in parallel
                         try:
                             sim.update_parallel(self.final_plan[step])
                         except RuntimeError as e:
@@ -89,32 +91,34 @@ class Agent():
                         raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
 
 
-        # apply all other actions from partial_plan in series
-        # if any update returns false, the proposed action has ruined some dependencies
+        # Apply all other actions from this agents' partial_plan in series. (TODO: does this assumption make sense?)
+        # If any update returns false, the proposed action has ruined some dependencies.
         for index in range(len(self.partial_plan)):
             action_tuple = self.partial_plan[index]
             # only check actions in partial plan that have not been scheduled yet
             # also, don't simulate an action if it's equal to the one that has been proposed
             if not self.scheduled_actions[index] and not (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
                 try:
-                    # logging.debug('Simulating: ' + str(action_tuple))
-                    sim.update(Action(self,action_tuple))
+                    sim.update(Action(self,action_tuple)) # pretend that all these actions are performed in series by a single agent.
                 except RuntimeError as e:
                     print(e)
                     return False
         if action.agent != self:
+            # don't print this info when an agent uses evaluate_dependencies() as a part of make_proposal
            logging.info(str(action) + ' at time ' + str(timeslot) + ' does not violate dependencies of agent ' + self.__name__)
         
         return True
 
     def evaluate_conflicts(self, action, timeslot):
-        # TODO: process self.partial_plan to detect conflicts between actions
-        # some actions can not be processed concurrently
-        # some actions produce effects that make future actions impossible
+        # some actions can not be processed concurrently.
+        # For now, only checks that all arguments/objects in 2 concurrent actions are different.
+
+        # some actions produce effects that make future actions impossible ==> TODO: I don't even look at this.
+
         if timeslot in self.final_plan.keys():
-            for a in self.final_plan[timeslot]:
+            for a in self.final_plan[timeslot]: # all actions that have been planned at t=timeslot
                 for arg in action.arguments:
-                    if arg in a.arguments:
+                    if arg in a.arguments: # if both actions operate on the same objects, there's a conflict. 
                         return False
         return True
 
@@ -122,18 +126,23 @@ class Agent():
         return random.random()
 
     def make_proposal(self):
-        # Returns a tuple of (action, timeslot) compatible with own partial plans
-        # Don't propose anything that's in the list of rejected proposals
+        # Returns a tuple of (action, timeslot).
+        # Don't propose anything that's in the list of rejected proposals.
+        # Don't propose anything that conflicts with the 'final_plan' as agreed upon until now.
+        # Don't propose anything that ruins the dependencies of other actions in this agent's partial plan.
+        # Don't propose an action in a timeslot where this agent already performs another task.
+
         if self.final_plan == {}:
             # first agent to make a proposal = easy
             # just propose to execute your first action in the first timeslot
+            # TODO: is this always the best strategy?
             action = Action(self,self.partial_plan[0])
             t = 0
             proposal = (action, t)
             logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
             return proposal
         else:
-            for index in range(len(self.scheduled_actions)): ## try all unscheduled actions in partial plan
+            for index in range(len(self.scheduled_actions)): ## try all unscheduled actions in partial plan from left to right
                 if self.scheduled_actions[index]==True:
                     # action has already been scheduled
                     logging.debug('action has already been scheduled')
@@ -141,16 +150,16 @@ class Agent():
                 proposal_impossible = False
                 t = 0
                 action = Action(self,self.partial_plan[index])
-                while not proposal_impossible: #try 10 timestamps to fit the action, otherwise continue
+                while not proposal_impossible: #try 10 sucessive timestamps to fit the action in the final plan, otherwise continue
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
-                    failed = False
+                    agentAlreadyHasTaskatTimeT = False
                     if t in self.final_plan.keys():
                         for planned_action in self.final_plan[t]:
                             if planned_action.agent == self:
                                 logging.debug('agent already has a task')
-                                failed = True
+                                agentAlreadyHasTaskatTimeT = True
                                 break
-                    if not failed:
+                    if not agentAlreadyHasTaskatTimeT:
                         if not self.evaluate_conflicts(action,t):
                             logging.debug('action in conflict with another one')
                         elif not self.evaluate_dependencies(action,t):
@@ -158,19 +167,19 @@ class Agent():
                         elif t in self.rejections.keys() and (action.operator,action.arguments) in self.rejections[t]:
                             logging.debug('action has been rejected previously')                    
                         else:
-                            proposal = (action, t)
+                            proposal = (action, t) # found an action, timestamp combo that does not conflict with any of the agent's goals
                             logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
                             return proposal
                     t+=1
                     if t>10:
                         proposal_impossible = True
-        return None
+        return None # TODO is this a good way to signal that the agent is happy/has no more tasks to complete?
+        # What if the agent is unhappy, but is still not able to propose any action/timeslot-combinations?
         
 
     def evaluate_proposal(self, action, timeslot):
         conflicts_ok = self.evaluate_conflicts(action,timeslot)
-        dependencies_ok = self.evaluate_dependencies(action, timeslot)
-        # TODO: if you reject the proposal, make sure to update your own rejections
+        dependencies_ok = self.evaluate_dependencies(action, timeslot)        
         return conflicts_ok and dependencies_ok
 
     def update_final_plan(self, action, timeslot):
@@ -197,9 +206,26 @@ class Agent():
         else:
             self.rejections[timeslot].append((action.operator,action.arguments))
 
-
     def check_final_plan(self):
-        #TODO return True when final_plan accomplishes all goals according to personal partial_plan
+        # #TODO check if this works
+
+        # sim = StateSimulation(self.observed_state) # start from the initial state
+        # for step in sorted(self.final_plan.keys()): #execute all actions that have been agreed upon
+        #     if len(self.final_plan[step]) == 1: #only 1 action at this step
+        #         sim.update(self.final_plan[step][0])
+        #     elif len(self.final_plan[step]) > 1: # multiple in parallel
+        #         sim.update_parallel(self.final_plan[step])
+        
+
+        # print(self.goal_state.__dict__)
+        # print(sim.state.__dict__)
+
+        # for key,value in self.goal_state.__dict__.items():
+        #     if key != '__name__':
+        #         for key2, value2 in self.goal_state.__dict__[key].items():
+        #             print(value2, sim.state.__dict__[key][key2])
+        #             if value2 != sim.state.__dict__[key][key2]:
+        #                 return False
         return False
 
 
@@ -239,19 +265,26 @@ class MultiAgentNegotiation():
             proposal = a0.make_proposal()
             if proposal == None:
                 return self.agents[0].final_plan
+                #continue
+                # TODO you should probably 'continue' here, e.g. ask for proposals from other agents
+                # until they're all happy
             else:
+                # an Action is a combination of: 
+                    #   (1) an agent, 
+                    #   (2) a tuple with an operator and some arguments
                 (action, timeslot) = proposal
-
-            #an Action is a combination of: (1) an agent, (2) a tuple with a operator name and some arguments
+            
+            # TODO extend to multiple agents. Everyone has to agree to the proposal.
             evaluation = a1.evaluate_proposal(action,timeslot)
 
             if evaluation == True:
-                # both agents agree
+                # all agents agree
                 a0.update_final_plan(action,timeslot)
                 a1.update_final_plan(action,timeslot)
             else:
                 # a1 has rejected the proposal
                 a0.update_rejections(action,timeslot)
+                a1.update_rejections(action,timeslot)
 
             for agent in self.agents:
                 happy = agent.check_final_plan()

@@ -29,11 +29,11 @@ nb_agents = 2
 for i in range(nb_agents):
     name = 'A'+str(i)
     agents[name] = Agent(name)
-    state1.holding[name] = False
+    state1.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
 for agent in agents.values():
-    agent.observe(state1)
-    agent.plan(tasks)
+    agent.observe(state1) #TODO what happens when agents don't observe everything?
+    agent.plan(tasks) #use pyphop to generate a personal plan
 
 # agents communicate to resolve dependencies/conflicts and assign tasks
 comms = MultiAgentNegotiation('test')
@@ -41,7 +41,7 @@ comms.add_agents(agents.values())
 
 plan = comms.find_resolution()
 
-
+# agents['A0'].print_final_plan()
 
 def print_plan(plan):
     for t,steps in plan.items():

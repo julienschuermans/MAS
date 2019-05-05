@@ -10,7 +10,7 @@ class Action():
         self.arguments = action_tuple[1:]
 
     def __str__(self):
-        return " *" + self.agent.__name__ + "-" + self.operator + str(self.arguments) + "*"
+        return "*" + self.agent.__name__ + "-" + self.operator + str(self.arguments) + "*"
 
 class StateSimulation():
 

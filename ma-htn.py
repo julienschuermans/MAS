@@ -45,7 +45,7 @@ plan = comms.find_resolution()
 
 def print_plan(plan):
     for t,steps in plan.items():
-        print('t: ' + str(t))
+        print('t=' + str(t))
         for action in steps:
             print(action)
         

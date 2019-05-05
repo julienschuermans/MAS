@@ -143,22 +143,24 @@ class Agent():
                 action = Action(self,self.partial_plan[index])
                 while not proposal_impossible: #try 10 timestamps to fit the action, otherwise continue
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
-                    
+                    failed = False
                     if t in self.final_plan.keys():
                         for planned_action in self.final_plan[t]:
                             if planned_action.agent == self:
                                 logging.debug('agent already has a task')
+                                failed = True
                                 break
-                    if not self.evaluate_conflicts(action,t):
-                        logging.debug('action in conflict with another one')
-                    elif not self.evaluate_dependencies(action,t):
-                        logging.debug('action destroys dependencies')
-                    elif t in self.rejections.keys() and (action.operator,action.arguments) in self.rejections[t]:
-                        logging.debug('action has been rejected previously')                    
-                    else:
-                        proposal = (action, t)
-                        logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
-                        return proposal
+                    if not failed:
+                        if not self.evaluate_conflicts(action,t):
+                            logging.debug('action in conflict with another one')
+                        elif not self.evaluate_dependencies(action,t):
+                            logging.debug('action destroys dependencies')
+                        elif t in self.rejections.keys() and (action.operator,action.arguments) in self.rejections[t]:
+                            logging.debug('action has been rejected previously')                    
+                        else:
+                            proposal = (action, t)
+                            logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
+                            return proposal
                     t+=1
                     if t>10:
                         proposal_impossible = True

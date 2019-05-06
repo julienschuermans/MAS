@@ -37,7 +37,7 @@ def unstack(state,b,c,agent_name):
     else: return False
     
 def putdown(state,b,agent_name):
-    if state.pos[b] == 'hand':
+    if state.pos[b] == 'hand':# and state.holding[agent_name]==b:
         state.pos[b] = 'table'
         state.clear[b] = True
         state.holding[agent_name] = False
@@ -45,7 +45,7 @@ def putdown(state,b,agent_name):
     else: return False
 
 def stack(state,b,c,agent_name):
-    if state.pos[b] == 'hand' and state.clear[c] == True:
+    if state.pos[b] == 'hand' and state.clear[c] == True:# and state.holding[agent_name]==b:
         state.pos[b] = c
         state.clear[b] = True
         state.holding[agent_name] = False

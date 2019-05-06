@@ -59,15 +59,18 @@ class Agent():
         # apply action currently under investigation at t=timeslot
         if timeslot in self.final_plan.keys():
             try:
-                sim.update_parallel(self.final_plan[timeslot] + [action]) # perform the action in parallel with those already scheduled
+                # perform the new action in parallel with those already scheduled
+                sim.update_parallel(self.final_plan[timeslot] + [action])
             except RuntimeError as e:
                 print(e)
+                print("sim failed at 66")
                 return False
         else:
             try:
                 sim.update(action)
             except RuntimeError as e:
                 print(e)
+                print("sim failed at 73")
                 return False
 
         # apply all other actions with t>timeslot that were already in the final_plan.
@@ -80,12 +83,14 @@ class Agent():
                             sim.update(self.final_plan[step][0])
                         except RuntimeError as e:
                             print(e)
+                            print("sim failed at 86")
                             return False
                     elif len(self.final_plan[step]) > 1:  # multiple in parallel
                         try:
                             sim.update_parallel(self.final_plan[step])
                         except RuntimeError as e:
                             print(e)
+                            print("sim failed at 93")   
                             return False
                     else:
                         raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -99,9 +104,13 @@ class Agent():
             # also, don't simulate an action if it's equal to the one that has been proposed
             if not self.scheduled_actions[index] and not (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
                 try:
-                    sim.update(Action(self,action_tuple)) # pretend that all these actions are performed in series by a single agent.
+                    print("simulating: " + str(action_tuple))
+                    # pretend that all these actions are performed in series by a single agent.
+                    # ok when different agents can stack/unstack
+                    sim.update(Action(self,action_tuple))
                 except RuntimeError as e:
                     print(e)
+                    print("sim failed at 110")  
                     return False
         if action.agent != self:
             # don't print this info when an agent uses evaluate_dependencies() as a part of make_proposal
@@ -150,7 +159,7 @@ class Agent():
                 proposal_impossible = False
                 t = 0
                 action = Action(self,self.partial_plan[index])
-                while not proposal_impossible: #try 10 sucessive timestamps to fit the action in the final plan, otherwise continue
+                while not proposal_impossible: #try 10 successive timestamps to fit the action in the final plan, otherwise continue
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
                     agentAlreadyHasTaskatTimeT = False
                     if t in self.final_plan.keys():
@@ -276,6 +285,10 @@ class MultiAgentNegotiation():
             
             # TODO extend to multiple agents. Everyone has to agree to the proposal.
             evaluation = a1.evaluate_proposal(action,timeslot)
+            if evaluation:
+                logging.debug(a1.__name__ + " has accepted the proposal")
+            else:
+                logging.debug(a1.__name__ + " has rejected the proposal")
 
             if evaluation == True:
                 # all agents agree

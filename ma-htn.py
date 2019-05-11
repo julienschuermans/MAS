@@ -2,13 +2,13 @@ from __future__ import print_function
 from pyhop import *
 
 import logging
-
+import time
 import blocks_world_operators
 import blocks_world_methods
 
 from blocks_world_agent import Agent, MultiAgentNegotiation
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 # state specification
 state1 = State('state1')
@@ -38,7 +38,7 @@ goal3.clear = {17:True, 15:True, 12:True}
 
 
 # task specification
-#tasks = [('move_blocks', goal3)]
+tasks = [('move_blocks', goal3)]
 
 # agent creation
 agents = {} # dictionary of names mapping to Agent() objects
@@ -46,18 +46,18 @@ nb_agents = 2
 for i in range(nb_agents):
     name = 'A'+str(i)
     agents[name] = Agent(name)
-    state1.holding[name] = False #by default, in the beginning, an agent isn't holding anything
+    state3.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
 for agent in agents.values():
-    agent.observe(state1) #TODO what happens when agents don't observe everything?
+    agent.observe(state3) #TODO what happens when agents don't observe everything?
     agent.plan(tasks) #use pyphop to generate a personal plan
 
 # agents communicate to resolve dependencies/conflicts and assign tasks
 comms = MultiAgentNegotiation('test')
 comms.add_agents(agents.values())
-
+start = time.time()
 plan = comms.find_resolution()
-
+stop = time.time()
 # agents['A0'].print_final_plan()
 
 def print_plan(plan):
@@ -67,3 +67,4 @@ def print_plan(plan):
             print(action)
         
 print_plan(plan)
+print(stop-start)

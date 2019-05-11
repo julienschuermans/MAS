@@ -16,6 +16,7 @@ for i in range(nb_agents):
     agents[name] = Agent(name)
     state1.holding[name] = False
 
+
 sim = StateSimulation(state1)
 
 print('before:')

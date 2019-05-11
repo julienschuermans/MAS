@@ -1,5 +1,5 @@
 from pyhop import *
-from blocks_world_tools import Action, StateSimulation
+from blocks_world_tools import Action, StateSimulation, copyallHoldingVariables
 
 import random, logging
 
@@ -94,6 +94,8 @@ class Agent():
 
         # Apply all other actions from this agents' partial_plan in series. (TODO: does this assumption make sense?)
         # If any update returns false, the proposed action has ruined some dependencies.
+        virtualAgent = Agent('virtualagent')
+        sim.state.holding['virtualagent'] = copyallHoldingVariables(sim.state)
         for index in range(len(self.partial_plan)):
             action_tuple = self.partial_plan[index]
             # only check actions in partial plan that have not been scheduled yet
@@ -103,7 +105,8 @@ class Agent():
                     print("simulating: " + str(action_tuple))
                     # pretend that all these actions are performed in series by a single agent.
                     # ok when different agents can stack/unstack
-                    sim.update(Action(self,action_tuple)) #TODO dont simulate 'self' executing the action, but use a more general VirtualAgent who has access to all Real Agents' capabilties
+
+                    sim.update(Action(virtualAgent,action_tuple)) #TODO dont simulate 'self' executing the action, but use a more general VirtualAgent who has access to all Real Agents' capabilties
                 except RuntimeError as e:
                     print(e)
                     return False
@@ -146,15 +149,17 @@ class Agent():
             logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
             return proposal
         else:
-            for index in range(len(self.scheduled_actions)): ## try all unscheduled actions in partial plan from left to right
-                if self.scheduled_actions[index]==True:
-                    # action has already been scheduled
-                    logging.debug('action has already been scheduled')
-                    continue
-                proposal_impossible = False
-                t = 0
-                action = Action(self,self.partial_plan[index])
-                while not proposal_impossible: #try 10 successive timestamps to fit the action in the final plan, otherwise continue
+
+            proposal_impossible = False
+            t = 0
+            while not proposal_impossible:#try 10 successive timestamps to fit the action in the final plan, otherwise continue
+                for index in range(len(self.scheduled_actions)): ## try all unscheduled actions in partial plan from left to right
+                    if self.scheduled_actions[index]==True:
+                        # action has already been scheduled
+                        logging.debug('action has already been scheduled')
+                        continue
+                
+                    action = Action(self,self.partial_plan[index])
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
                     agentAlreadyHasTaskatTimeT = False
                     if t in self.final_plan.keys():
@@ -169,14 +174,15 @@ class Agent():
                         elif not self.evaluate_dependencies(action,t):
                             logging.debug('action destroys dependencies')
                         elif t in self.rejections.keys() and (action.operator,action.arguments) in self.rejections[t]:
+                            print(self.rejections)
                             logging.debug('action has been rejected previously')                    
                         else:
                             proposal = (action, t) # found an action, timestamp combo that does not conflict with any of the agent's goals
                             logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
                             return proposal
-                    t+=1
-                    if t>10:
-                        proposal_impossible = True
+                t+=1
+                if t>10:
+                    proposal_impossible = True
         return None # TODO is this a good way to signal that the agent is happy/has no more tasks to complete?
         # What if the agent is unhappy, but is still not able to propose any action/timeslot-combinations?
         
@@ -213,23 +219,26 @@ class Agent():
     def check_final_plan(self):
         # #TODO check if this works
 
-        # sim = StateSimulation(self.observed_state) # start from the initial state
-        # for step in sorted(self.final_plan.keys()): #execute all actions that have been agreed upon
-        #     if len(self.final_plan[step]) == 1: #only 1 action at this step
-        #         sim.update(self.final_plan[step][0])
-        #     elif len(self.final_plan[step]) > 1: # multiple in parallel
-        #         sim.update_parallel(self.final_plan[step])
+        sim = StateSimulation(self.observed_state) # start from the initial state
+        for step in sorted(self.final_plan.keys()): #execute all actions that have been agreed upon
+            if len(self.final_plan[step]) == 1: #only 1 action at this step
+                sim.update(self.final_plan[step][0])
+            elif len(self.final_plan[step]) > 1: # multiple in parallel
+                sim.update_parallel(self.final_plan[step])
         
 
-        # print(self.goal_state.__dict__)
-        # print(sim.state.__dict__)
+        print(self.goal_state.__dict__)
+        print(sim.state.__dict__)
 
-        # for key,value in self.goal_state.__dict__.items():
-        #     if key != '__name__':
-        #         for key2, value2 in self.goal_state.__dict__[key].items():
-        #             print(value2, sim.state.__dict__[key][key2])
-        #             if value2 != sim.state.__dict__[key][key2]:
-        return False
+        for key,value in self.goal_state.__dict__.items():
+            if key != '__name__':
+                for key2, value2 in self.goal_state.__dict__[key].items():
+                    print(value2, sim.state.__dict__[key][key2])
+                    if value2 != sim.state.__dict__[key][key2]:
+                        return False
+
+        print('I am happy!')
+        return True
 
 
 class MultiAgentNegotiation():
@@ -250,9 +259,11 @@ class MultiAgentNegotiation():
         all_agents_happy = True
 
         for agent in self.agents:
+            print('check happy')
             happy = agent.check_final_plan()
             if not happy:
                 all_agents_happy = False
+
 
         while not all_agents_happy:
             # agents play rock-paper-scissors to see who talks first
@@ -267,9 +278,9 @@ class MultiAgentNegotiation():
             
             proposal = a0.make_proposal()
             if proposal == None:
-                return self.agents[0].final_plan
-                #continue
-                # TODO you should probably 'continue' here, e.g. ask for proposals from other agents
+                #return self.agents[0].final_plan
+                continue
+                # you should 'continue' here, e.g. ask for proposals from other agents
                 # until they're all happy
             else:
                 # an Action is a combination of: 
@@ -295,8 +306,9 @@ class MultiAgentNegotiation():
 
             all_agents_happy = True
             for agent in self.agents:
+                print('happy?')
                 happy = agent.check_final_plan()
                 if not happy:
                     all_agents_happy = False
-        
+        print("Everyone is happy!")
         return self.agents[0].final_plan

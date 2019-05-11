@@ -45,3 +45,14 @@ class StateSimulation():
         return self.state == goalState #TODO should probably do this another way:
         # separately check all variable bindings in the goalstate
 
+
+
+def copyallHoldingVariables(state):
+    holding_list = [False]*len(state.holding)
+    for i,value in enumerate(state.holding.values()):
+        if value != False:
+            holding_list[i] = value
+
+    return holding_list
+
+

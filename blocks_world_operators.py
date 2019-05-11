@@ -20,7 +20,15 @@ The blocks-world operators use three state variables:
 """
 
 def pickup(state,b,agent_name):
-    if state.pos[b] == 'table' and state.clear[b] == True and state.holding[agent_name] == False:
+    if agent_name == 'virtualagent' and state.pos[b] == 'table' and state.clear[b] == True and (False in state.holding['virtualagent']):
+        state.pos[b] = 'hand'
+        state.clear[b] = False
+        for i,value in enumerate(state.holding[agent_name],0):
+            if value == False:
+                state.holding[agent_name][i] = b
+                break
+        return state
+    elif state.pos[b] == 'table' and state.clear[b] == True and state.holding[agent_name] == False:
         state.pos[b] = 'hand'
         state.clear[b] = False
         state.holding[agent_name] = b
@@ -28,7 +36,16 @@ def pickup(state,b,agent_name):
     else: return False
 
 def unstack(state,b,c,agent_name):
-    if state.pos[b] == c and c != 'table' and state.clear[b] == True and state.holding[agent_name] == False:
+    if agent_name == 'virtualagent' and state.pos[b] == c and c != 'table' and state.clear[b] == True and (False in state.holding['virtualagent']):
+        state.pos[b] = 'hand'
+        state.clear[b] = False
+        for i,value in enumerate(state.holding[agent_name],0):
+            if value == False:
+                state.holding[agent_name][i] = b
+                break
+        state.clear[c] = True
+        return state
+    elif state.pos[b] == c and c != 'table' and state.clear[b] == True and state.holding[agent_name] == False:
         state.pos[b] = 'hand'
         state.clear[b] = False
         state.holding[agent_name] = b
@@ -37,7 +54,17 @@ def unstack(state,b,c,agent_name):
     else: return False
     
 def putdown(state,b,agent_name):
-    if state.pos[b] == 'hand' and state.holding[agent_name]==b:
+    if agent_name == 'virtualagent' and state.pos[b] == 'hand' and (b in state.holding[agent_name]):
+        state.pos[b] = 'table'
+        state.clear[b] = True
+        # assuming only one value in the holding list of 'virtualagent' is equal to b
+        for i,value in enumerate(state.holding[agent_name],0):
+            if value == b:
+                state.holding[agent_name][i] = False
+                break
+        #state.holding[agent_name] = [False for value in state.holding[agent_name] if value==b]
+        return state
+    elif state.pos[b] == 'hand' and state.holding[agent_name]==b:
         state.pos[b] = 'table'
         state.clear[b] = True
         state.holding[agent_name] = False
@@ -45,6 +72,15 @@ def putdown(state,b,agent_name):
     else: return False
 
 def stack(state,b,c,agent_name):
+    if agent_name == 'virtualagent' and state.pos[b] == 'hand' and state.clear[c] == True and (b in state.holding[agent_name]):
+        state.pos[b] = c
+        state.clear[b] = True
+        state.clear[c] = False
+        for i,value in enumerate(state.holding[agent_name],0):
+            if value == b:
+                state.holding[agent_name][i] = False
+                break
+        return state
     if state.pos[b] == 'hand' and state.clear[c] == True and state.holding[agent_name]==b:
         state.pos[b] = c
         state.clear[b] = True

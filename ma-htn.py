@@ -10,18 +10,19 @@ from blocks_world_agent import Agent, MultiAgentNegotiation
 
 logging.basicConfig(level=logging.ERROR)
 
-# state specification
-state1 = State('state1')
-state1.pos={'a':'c', 'b':'d', 'c':'table', 'd':'table'}
-state1.clear={'a':True, 'c':False,'b':True, 'd':False}
-state1.holding={}
 
-# goal specification
-goal2b = Goal('goal2b')
-goal2b.pos={'b':'c', 'a':'d'}
+# # state specification
+# state1 = State('state1')
+# state1.pos={'a':'c', 'b':'d', 'c':'table', 'd':'table'}
+# state1.clear={'a':True, 'c':False,'b':True, 'd':False}
+# state1.holding={}
 
-# task specification
-tasks = [('move_blocks', goal2b)]
+# # goal specification
+# goal2b = Goal('goal2b')
+# goal2b.pos={'b':'c', 'a':'d'}
+
+# # task specification
+# tasks = [('move_blocks', goal2b)]
 
 # state specification
 state3 = State('state3')
@@ -35,7 +36,6 @@ state3.holding = {}
 goal3 = Goal('goal3')
 goal3.pos = {15:13, 13:8, 8:9, 9:4, 4:'table', 12:2, 2:3, 3:16, 16:11, 11:7, 7:6, 6:'table'}
 goal3.clear = {17:True, 15:True, 12:True}
-
 
 # task specification
 tasks = [('move_blocks', goal3)]
@@ -58,7 +58,6 @@ comms.add_agents(agents.values())
 start = time.time()
 plan = comms.find_resolution()
 stop = time.time()
-# agents['A0'].print_final_plan()
 
 def print_plan(plan):
     for t,steps in plan.items():
@@ -67,4 +66,4 @@ def print_plan(plan):
             print(action)
         
 print_plan(plan)
-print(stop-start)
+print('resolution took ' + str(stop-start) + ' seconds')

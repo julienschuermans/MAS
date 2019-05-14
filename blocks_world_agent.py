@@ -7,7 +7,7 @@ class Agent():
     """An agent planning to act in a (multi-agent) blocks world."""
 
     def __init__(self,name):
-        self.__name__ = name
+        self.__name__ = name  # TODO define get_name method instead of acessing __name__ everywhere
         self.possible_actions = None
         self.observed_state = None
         self.goal_state = None
@@ -97,8 +97,8 @@ class Agent():
             if not self.scheduled_actions[index] and not (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
                 try:
                     # pretend that all these actions are performed in series by a single agent.
-                    # ok when different agents can stack/unstack
-                    sim.update(Action(virtualAgent,action_tuple)) #TODO dont simulate 'self' executing the action, but use a more general VirtualAgent who has access to all Real Agents' capabilties
+                    # in principle ok that different agents might stack/unstack (this is just a simulation)
+                    sim.update(Action(virtualAgent,action_tuple))
                 except RuntimeError:
                     return False
         if action.agent != self:
@@ -195,7 +195,7 @@ class Agent():
 
     def update_rejections(self, action, timeslot):
         if timeslot not in self.rejections.keys():
-            self.rejections[timeslot] = [(action.operator,action.arguments)] #TODO rejections should include action.agent.__name__
+            self.rejections[timeslot] = [(action.operator,action.arguments)] #TODO rejections should include action.agent.get_name()
         else:
             self.rejections[timeslot].append((action.operator,action.arguments))
 

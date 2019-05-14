@@ -42,7 +42,7 @@ tasks = [('move_blocks', goal3)]
 
 # agent creation
 agents = {} # dictionary of names mapping to Agent() objects
-nb_agents = 2
+nb_agents = 10
 for i in range(nb_agents):
     name = 'A'+str(i)
     agents[name] = Agent(name)
@@ -67,3 +67,31 @@ def print_plan(plan):
         
 print_plan(plan)
 print('resolution took ' + str(stop-start) + ' seconds')
+
+##### TODO #####
+#
+# 000) fix all remaining TODOs in the current code
+#
+# 00) evaluate timing: why does resolution take very long sometimes
+#       - are there easy fixes for this?
+#       - something related to rejected_proposals (not agent-dependent atm)?
+#
+# 0) plan_pruning: deterministic method that all agents can apply independently.
+#       - eliminate redundant putdown/pickup
+#       - other inefficiencies?
+# 
+# 1) run_n_trials --> compute average time, solution quality
+#
+# 2) specialised agents
+#       - how to limit actions of a certain agent
+#
+# 3) agents that do not observe the full state
+#
+# 4) easily scale to larger problems. generate a 10/100/1000-burger initial state and corresponding goals
+#
+# 5) smart agent order instead of random (round robin?)
+#
+#
+#
+
+

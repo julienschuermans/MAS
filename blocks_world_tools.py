@@ -40,11 +40,6 @@ class StateSimulation():
         for action in actions:
             self.update(action)
         self.step = start + 1
-    
-    def check_goal(self, goalState):
-        return self.state == goalState #TODO should probably do this another way:
-        # separately check all variable bindings in the goalstate
-
 
 
 def copyallHoldingVariables(state):
@@ -54,5 +49,3 @@ def copyallHoldingVariables(state):
             holding_list[i] = value
 
     return holding_list
-
-

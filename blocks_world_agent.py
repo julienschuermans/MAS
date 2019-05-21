@@ -1,31 +1,41 @@
 from pyhop import *
 from blocks_world_tools import Action, StateSimulation, copyallHoldingVariables
 
-import random, logging
+import random, logging, time
 
 class Agent():
     """An agent planning to act in a (multi-agent) blocks world."""
 
     def __init__(self,name):
-        self.__name__ = name  # TODO define get_name method instead of acessing __name__ everywhere
+        self.__name__ = name
         self.possible_actions = None
         self.observed_state = None
         self.goal_state = None
         self.partial_plan = None        # single-agent plan returned by pyhop
-        self.final_plan = {}            # = schedule agreed upon by all agents until now
-        self.scheduled_actions = []     # a list the same size as partial_plan, indicating which actions have been scheduled in the final_plan already 
+        self.final_plan = {}            # schedule agreed upon by all agents until now
+        self.scheduled_actions = []     # a list the same size as partial_plan, indicating which actions have been scheduled in the final_plan already
+        self.rejections = {}            # dictionary mapping timeslots to rejected Actions
+        self.planning_horizon = 50
+        #TODO planning horizon recht evenredig met problemsize/nb_agents ?
+
+    def reset(self):
+        self.final_plan = {}
+        self.scheduled_actions = [False] * len(self.partial_plan)
         self.rejections = {}
+
+    def get_name(self):
+        return self.__name__
 
     def observe(self,state):
         self.observed_state = state
-    
+
     def assign_actions(self,actions):
         # an agent may be restricted to perform a subset of all possible actions
         self.possible_actions = actions
 
     def plan(self,tasks):
-        self.goal_state = tasks[0][1] #TODO expand to list with multiple tasks
-        self.partial_plan = pyhop(self.observed_state,tasks,self.__name__,verbose=0)
+        self.goal_state = tasks[0][1]
+        self.partial_plan = pyhop(self.observed_state,tasks,self.get_name(),verbose=0)
         assert self.partial_plan != False #pyhop should never fail
         self.scheduled_actions = [False] * len(self.partial_plan)
 
@@ -103,8 +113,8 @@ class Agent():
                     return False
         if action.agent != self:
             # don't print this info when an agent uses evaluate_dependencies() as a part of make_proposal
-           logging.info(str(action) + ' at time ' + str(timeslot) + ' does not violate dependencies of agent ' + self.__name__)
-        
+           logging.debug(str(action) + ' at time ' + str(timeslot) + ' does not violate dependencies of agent ' + self.get_name())
+
         return True
 
     def evaluate_conflicts(self, action, timeslot):
@@ -114,12 +124,13 @@ class Agent():
         if timeslot in self.final_plan.keys():
             for a in self.final_plan[timeslot]: # all actions that have been planned at t=timeslot
                 for arg in action.arguments:
-                    if arg in a.arguments: # if both actions operate on the same objects, there's a conflict. 
+                    if arg in a.arguments: # if both actions operate on the same objects, there's a conflict.
                         return False
         return True
 
     def make_proposal(self):
         # Returns a tuple of (action, timeslot).
+        # Don't prosope an action that has already been scheduled
         # Don't propose anything that's in the list of rejected proposals.
         # Don't propose anything that conflicts with the 'final_plan' as agreed upon until now.
         # Don't propose anything that ruins the dependencies of other actions in this agent's partial plan.
@@ -137,12 +148,15 @@ class Agent():
 
             proposal_impossible = False
             t = 0
-            while not proposal_impossible:#try 10 successive timestamps to fit the action in the final plan, otherwise continue
-                for index in range(len(self.scheduled_actions)): ## try all unscheduled actions in partial plan from left to right
+            while not proposal_impossible: #try successive timestamps to fit an action in the final plan
+                for index in range(len(self.scheduled_actions)): ## select an unscheduled action in the partial plan from left to right
                     if self.scheduled_actions[index]==True:
                         logging.debug('action has already been scheduled')
                         continue
-                
+
+                    if t > max(self.final_plan.keys()) + 4: #only consider actions close to end of current final plan
+                        break #TODO how to tune this parameter?
+
                     action = Action(self,self.partial_plan[index])
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
                     agentAlreadyHasTaskatTimeT = False
@@ -155,24 +169,26 @@ class Agent():
                     if not agentAlreadyHasTaskatTimeT:
                         if not self.evaluate_conflicts(action,t):
                             logging.debug('action in conflict with another one')
+                        elif t in self.rejections.keys() and action in self.rejections[t]:
+                            logging.debug('action has been rejected previously')
                         elif not self.evaluate_dependencies(action,t):
                             logging.debug('action destroys dependencies')
-                        elif t in self.rejections.keys() and (action.operator,action.arguments) in self.rejections[t]:
-                            logging.debug('action has been rejected previously')                    
                         else:
                             proposal = (action, t) # found an action, timestamp combo that does not conflict with any of the agent's goals
                             logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
                             return proposal
+                    else:
+                        break #if the agent already has a task at time t, he doesnt need to check the other actions at the same timestep
                 t+=1
-                if t>30: #TODO this shouldn't be hardcoded 
+                if t>self.planning_horizon:
                     proposal_impossible = True
-    
+
         return None # a signal that the agent is happy/has no more tasks to complete
-        
+
 
     def evaluate_proposal(self, action, timeslot):
         conflicts_ok = self.evaluate_conflicts(action,timeslot)
-        dependencies_ok = self.evaluate_dependencies(action, timeslot)        
+        dependencies_ok = self.evaluate_dependencies(action, timeslot)
         return conflicts_ok and dependencies_ok
 
     def update_final_plan(self, action, timeslot):
@@ -195,9 +211,9 @@ class Agent():
 
     def update_rejections(self, action, timeslot):
         if timeslot not in self.rejections.keys():
-            self.rejections[timeslot] = [(action.operator,action.arguments)] #TODO rejections should include action.agent.get_name()
+            self.rejections[timeslot] = [action] # rejections is combination of agent and
         else:
-            self.rejections[timeslot].append((action.operator,action.arguments))
+            self.rejections[timeslot].append(action)
 
     def check_final_plan(self):
         sim = StateSimulation(self.observed_state) # start from the initial state
@@ -222,7 +238,8 @@ class MultiAgentNegotiation():
     def __init__(self,name):
         self.__name__ = name
         self.agents = []
-    
+        self.silent_agents = []
+
     def add_agent(self,agent):
         self.agents.append(agent)
 
@@ -230,17 +247,17 @@ class MultiAgentNegotiation():
         # appends a list of agents to the existing list
         self.agents += agents
 
+
     def find_resolution(self):
+
         all_agents_happy = True
 
         for agent in self.agents:
-            # print('check happy')
             happy = agent.check_final_plan()
             if not happy:
                 all_agents_happy = False
 
         while not all_agents_happy:
-
             #  pick a random agent from the list
             the_chosen_one = random.choice(self.agents)
             proposal = the_chosen_one.make_proposal()
@@ -250,17 +267,17 @@ class MultiAgentNegotiation():
                 continue
             else:
                 (action, timeslot) = proposal
-            
+
             # Everyone else has to agree to the proposal.
             for current_agent in self.agents:
-                if current_agent.__name__ != the_chosen_one.__name__:
-
+                if current_agent.get_name() != the_chosen_one.get_name():
                     evaluation = current_agent.evaluate_proposal(action,timeslot)
+
                     if evaluation:
-                        logging.debug(current_agent.__name__ + " has accepted the proposal")
+                        logging.debug(current_agent.get_name() + " has accepted the proposal")
                     else:
-                        logging.debug(current_agent.__name__ + " has rejected the proposal")
-                        break
+                        logging.debug(current_agent.get_name() + " has rejected the proposal")
+                        break #one of the agents has disagreed. no reason to check the others.
 
             if evaluation == True:
                 # all agents agree, add it to their final plans
@@ -271,11 +288,16 @@ class MultiAgentNegotiation():
                 for agent in self.agents:
                     agent.update_rejections(action,timeslot)
 
+
             # if all agents are happy with the current plan, we can exit the while loop
             all_agents_happy = True
             for agent in self.agents:
                 happy = agent.check_final_plan()
                 if not happy:
                     all_agents_happy = False
-        
-        return self.agents[0].final_plan 
+
+        if all_agents_happy:
+            return self.agents[0].final_plan
+        else:
+            logging.info("No multi-agent plan possible")
+            return None

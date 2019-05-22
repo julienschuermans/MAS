@@ -126,7 +126,8 @@ class Agent():
                 for arg in action.arguments:
                     if arg in a.arguments: # if both actions operate on the same objects, there's a conflict.
                         return False
-        return True
+
+        return True #true is a positive evaluation: there are no conflicts
 
     def make_proposal(self):
         # Returns a tuple of (action, timeslot).
@@ -135,6 +136,9 @@ class Agent():
         # Don't propose anything that conflicts with the 'final_plan' as agreed upon until now.
         # Don't propose anything that ruins the dependencies of other actions in this agent's partial plan.
         # Don't propose an action in a timeslot where this agent already performs another task.
+
+        if self.partial_plan == []:
+            return None
 
         if self.final_plan == {}:
             # first agent to make a proposal = easy:
@@ -224,7 +228,7 @@ class Agent():
                 sim.update_parallel(self.final_plan[step])
 
         for key in self.goal_state.__dict__.keys():
-            if key != '__name__':
+            if key != '__name__' and key != 'clear': # only care about the position of blocks !
                 for key2, value2 in self.goal_state.__dict__[key].items():
                     if value2 != sim.state.__dict__[key][key2]:
                         return False
@@ -249,6 +253,7 @@ class MultiAgentNegotiation():
 
 
     def find_resolution(self):
+        logging.info('Starting communications...')
 
         all_agents_happy = True
 
@@ -297,7 +302,8 @@ class MultiAgentNegotiation():
                     all_agents_happy = False
 
         if all_agents_happy:
+            logging.info('All agents agree on the plan.')
             return self.agents[0].final_plan
         else:
-            logging.info("No multi-agent plan possible")
+            logging.warning("No multi-agent plan possible.")
             return None

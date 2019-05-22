@@ -1,12 +1,13 @@
 from __future__ import print_function
 from pyhop import *
 
-import logging, time, csv, os
-
+import logging, time, csv, os, random
+from string import ascii_lowercase
 import numpy as np
 
 import blocks_world_operators
 import blocks_world_methods
+import blocks_world_tools as bwt
 
 from blocks_world_agent import Agent, MultiAgentNegotiation
 
@@ -46,10 +47,122 @@ def print_plan(plan):
         for action in steps:
             print(action)
 
-def run_experiment(path_to_csv, state,tasks,nb_agents=2,nb_trials=1):
+
+def save_plan(plan,nb_agents,path_to_plan):
+
+    nb_timesteps = len(plan)
+
+    with open(path_to_plan, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(['timeslot'] + [str(i) for i in range(nb_timesteps)])
+
+        def fill(agent_id,t):
+            for action in plan[t]:
+                if action.agent.get_name() == 'A' + str(agent_id):
+                    return action.operator + str(action.arguments)
+            return ''
+
+        for i in range(nb_agents):
+            writer.writerow(['A' + str(i)] + [fill(i,t) for t in range(nb_timesteps)])
+
+
+def generate_state(nb_blocks):
+    state = State('generated_state')
+    state.pos = {}
+
+    nb_blocks_on_table = random.randint(1,nb_blocks//4) #don't put too many blocks on the table,
+    # it makes the generated problems rather easy to solve
+    shuffled_blocks  = [i for i in range(1,nb_blocks+1)]
+    random.shuffle(shuffled_blocks)
+
+    for j in range(nb_blocks_on_table):
+        i = shuffled_blocks[j]
+        state.pos[i] = 'table'
+
+    for j in range(nb_blocks_on_table, nb_blocks):
+        i = shuffled_blocks[j]
+        state.pos[i] = random.choice(list(set(state.pos.keys()) - set(state.pos.values()) - set([i])))
+
+    state.clear = {x:False for x in range(1,nb_blocks+1)}
+
+    for j in range(1,nb_blocks+1):
+        if j not in state.pos.values():
+            state.clear.update({j:True})
+    state.holding = {}
+    return state
+
+def generate_goal(nb_blocks):
+    goal = Goal('generated_goal')
+    goal.pos = {}
+
+    # nb_fixed_blocks = random.randint(1,nb_blocks)
+    nb_fixed_blocks = nb_blocks
+    shuffled_blocks  = [i for i in range(1,nb_blocks+1)]
+    random.shuffle(shuffled_blocks)
+
+    for j in range(nb_fixed_blocks):
+        i = shuffled_blocks[j]
+        if random.randint(1,nb_fixed_blocks) < random.random()*nb_fixed_blocks:
+            goal.pos[i] = 'table'
+        else:
+
+            def check(block,candidate):
+                if block == candidate:
+                    return False
+                elif candidate in goal.pos.keys():
+                    return check(block,goal.pos[candidate]) #check the block under the candidate
+                else:
+                    return True # the candidate is free
+
+            potential_destinations = list(set([k for k in shuffled_blocks if check(i,k)]) - set(goal.pos.values()))
+            if len(potential_destinations) > 0:
+                dest = random.choice(potential_destinations)
+                goal.pos[i] = dest
+
+    # potentially_clear_blocks = list(set([i for i in range(1,nb_blocks+1)]) - set(goal.pos.values()))
+    # random.shuffle(potentially_clear_blocks)
+    #
+    # nb_clear_blocks = random.randint(0,len(potentially_clear_blocks))
+    goal.clear = {x:True for x in list(set(goal.pos.keys())-set(goal.pos.values()))}
+
+    return goal
+
+def generate_problem(nb_blocks):
+    return generate_state(nb_blocks), generate_goal(nb_blocks)
+
+
+def generate_solvable_problem(nb_blocks):
+    # make sure that the generated problem can be solved by a single agent
+    # our assumption = pyhop can solve the block stacking task alone
+
+    state, goal = generate_problem(nb_blocks=nb_blocks)
+    tasks = [('move_blocks', goal)]
+    canBeSolvedByPyhop = False
+
+    while not canBeSolvedByPyhop:
+        try:
+            state.holding['dummy_agent'] = False
+            single_agent_plan = pyhop(state,[('move_blocks', goal)],'dummy_agent')
+            if single_agent_plan != False:
+                logging.debug("found a valid problem")
+                state.holding = {}
+                canBeSolvedByPyhop = True
+            else:
+                logging.debug("pyhop can't solve this, try again")
+                state, goal = generate_problem(nb_blocks=nb_blocks)
+                tasks = [('move_blocks', goal)]
+        except:
+            logging.debug("pyhop can't solve this, try again")
+            state, goal = generate_problem(nb_blocks=nb_blocks)
+            tasks = [('move_blocks', goal)]
+
+    return state, goal
+
+def run_experiment(path_to_csv,path_to_best_plan,state,tasks,nb_agents, nb_blocks, nb_trials=1):
     """
     computes metrics, averaging over nb_trials
     writes a single new line with all results to the given csv file
+    stores the shortest plan as a csv
     """
 
     # agent initialisation
@@ -65,54 +178,68 @@ def run_experiment(path_to_csv, state,tasks,nb_agents=2,nb_trials=1):
         agent.plan(tasks) #use pyphop to generate a personal plan
 
     single_agent_plan_length = len(agents['A0'].partial_plan)
-    # logging.info("single agent plan length: " + '{:d}'.format(single_agent_plan_length))
+    if single_agent_plan_length == 0:
+        # the partial plan is an empty list: no actions required to reach goal state
+        logging.warning("skipping useless experiment")
+        return -1
+    else:
+        # agents communicate to resolve dependencies/conflicts and assign tasks
+        comms = MultiAgentNegotiation('test')
+        comms.add_agents(agents.values())
 
-    # agents communicate to resolve dependencies/conflicts and assign tasks
-    comms = MultiAgentNegotiation('test')
-    comms.add_agents(agents.values())
+
+        # setup lists for averaging
+        time_measurements = []
+        plan_lengths = []
+
+        best_plan = None
+
+        for trial in range(nb_trials):
+
+            for agent in agents.values(): # wipes the results from the previous run
+                agent.reset()
+
+            start = time.time()
+            plan = comms.find_resolution()
+            stop = time.time()
+            time_measurements.append(stop-start)
+
+            if plan is not None:
+                plan_lengths.append(len(plan))
+                if best_plan is None or len(plan) < len(best_plan):
+                    best_plan = plan
+            else:
+                logging.info('trial ' + str(trial) + ' did not find a solution')
 
 
-    # setup lists for averaging
-    time_measurements = []
-    plan_lengths = []
+        with open(path_to_csv, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow( \
+                [str(nb_blocks)] \
+                + [str(single_agent_plan_length)] \
+                + [str(nb_agents)] \
+                + [str(nb_trials)] \
+                + ['{:.4f}'.format(np.min(time_measurements))] \
+                + ['{:.4f}'.format(np.max(time_measurements))] \
+                + ['{:.4f}'.format(np.mean(time_measurements))] \
+                + ['{:.0f}'.format(np.ceil(np.min(plan_lengths)))] \
+                + ['{:.0f}'.format(np.ceil(np.max(plan_lengths)))] \
+                + ['{:.0f}'.format(np.ceil(np.mean(plan_lengths)))] \
+                + ['{:.4f}'.format(single_agent_plan_length/np.ceil(np.mean(plan_lengths)))] \
+                + ['{:.4f}'.format(single_agent_plan_length/(np.ceil(np.mean(plan_lengths))*nb_agents))] \
+                )
 
-    for trial in range(nb_trials):
-
-        for agent in agents.values(): # wipes the results from the previous run
-            agent.reset()
-
-        start = time.time()
-        plan = comms.find_resolution()
-        stop = time.time()
-        time_measurements.append(stop-start)
-
-        if plan is not None:
-            plan_lengths.append(len(plan))
-        else:
-            logging.info('trial ' + str(trial) + ' did not find a solution')
-
-    with open(path_to_csv, 'a', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow( \
-            ['20'] \
-            + [str(single_agent_plan_length)] \
-            + [str(nb_agents)] \
-            + [str(nb_trials)] \
-            + ['{:.4f}'.format(np.min(time_measurements))] \
-            + ['{:.4f}'.format(np.max(time_measurements))] \
-            + ['{:.4f}'.format(np.mean(time_measurements))] \
-            + ['{:.0f}'.format(np.ceil(np.min(plan_lengths)))] \
-            + ['{:.0f}'.format(np.ceil(np.max(plan_lengths)))] \
-            + ['{:.0f}'.format(np.ceil(np.mean(plan_lengths)))] \
-            + ['{:.4f}'.format(single_agent_plan_length/np.ceil(np.mean(plan_lengths)))] \
-            + ['{:.4f}'.format(single_agent_plan_length/(np.ceil(np.mean(plan_lengths))*nb_agents))] \
-            )
+        save_plan(best_plan, nb_agents, path_to_best_plan)
+        # print_plan(best_plan)
 
 
 ##### start experiments here
 
-path_to_csv = './results.csv'
-with open(path_to_csv, 'w', newline='') as csvfile:
+path_to_results = './results.csv'
+path_to_best_plan = './best_plan.csv'
+
+# write the column headers in the csv with metrics
+with open(path_to_results, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     writer.writerow( \
     ['problem size', \
@@ -128,10 +255,21 @@ with open(path_to_csv, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
+nb_agents = 8
+nb_blocks = 20
+nb_trials = 5
 
-for i in range(2,20,2):
-    logging.info("number of agents: " + str(i))
-    run_experiment(path_to_csv,state3,tasks3,nb_agents=i,nb_trials=10)
+state, goal = generate_solvable_problem(nb_blocks)
+tasks = [('move_blocks', goal)]
+
+print_state(state)
+print_goal(goal)
+
+run_experiment(path_to_results,path_to_best_plan,state,tasks,nb_agents, nb_blocks, nb_trials)
+
+# for i in range(2,20,2):
+#     logging.info("number of agents: " + str(i))
+#     run_experiment(path_to_csv,path_to_best_plan,state3,tasks3,nb_agents=i,nb_trials=10)
 
 ##### TODO #####
 #
@@ -152,11 +290,10 @@ for i in range(2,20,2):
     #   nested loops: O(len(partial_plan)*planning_horizon)
     #       - decrease planning_horizon? too small, might not find a solution
     #       - early exit from the loop?
-    #           - got a quick implementation working
+    #           - got a quick implementation working (only look at timesteps close to end of current final_plan)
 
-# 0) run_n_trials --> compute average time, solution quality
-    # => DONE (mostly)
-        #TODO extract best plan
+# 0) run_n_trials --> compute average time, solution quality, extract best plan
+    # => DONE
 
 # 1) LAURANE: specialised agents
 #       - limit actions of a certain agent
@@ -164,9 +301,12 @@ for i in range(2,20,2):
 #       - only extra constraints in make_proposal
 #
 # 2) JULIEN: easily scale to larger problems.
-# generate a 10/100/1000-burger initial state and corresponding goals
+#       - generate a 10/100/1000-burger initial state and corresponding goals
+    # ==> DONE
+
 #
 # 3) agents that do not observe the full state
+#       - can they still have a valid partial_plan ? depends on pyhop I guess
 #
 #
 # 4) plan_pruning: deterministic method that all agents can apply independently.

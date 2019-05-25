@@ -69,8 +69,10 @@ def save_plan(plan,nb_agents,path_to_plan):
 def generate_state(nb_blocks):
     state = State('generated_state')
     state.pos = {}
-
-    nb_blocks_on_table = random.randint(1,nb_blocks//4) #don't put too many blocks on the table,
+    if nb_blocks > 4:
+        nb_blocks_on_table = random.randint(1,nb_blocks//4) #don't put too many blocks on the table,
+    else:
+        nb_blocks_on_table = random.randint(1,nb_blocks)
     # it makes the generated problems rather easy to solve
     shuffled_blocks  = [i for i in range(1,nb_blocks+1)]
     random.shuffle(shuffled_blocks)
@@ -255,9 +257,9 @@ with open(path_to_results, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
-nb_agents = 8
-nb_blocks = 20
-nb_trials = 5
+nb_agents = 2
+nb_blocks = 3
+nb_trials = 1
 
 state, goal = generate_solvable_problem(nb_blocks)
 tasks = [('move_blocks', goal)]

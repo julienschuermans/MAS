@@ -35,7 +35,7 @@ class Agent():
 
     def plan(self,tasks):
         self.goal_state = tasks[0][1]
-        self.partial_plan = pyhop(self.observed_state,tasks,self.get_name(),verbose=0)
+        self.partial_plan = pyhop(self.observed_state,tasks,self.get_name(),verbose=1)
         assert self.partial_plan != False #pyhop should never fail
         self.scheduled_actions = [False] * len(self.partial_plan)
 

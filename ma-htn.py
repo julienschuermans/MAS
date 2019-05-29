@@ -281,12 +281,12 @@ with open(path_to_results_constraints, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
-nb_agents = 10
+nb_agents = 2
 action_limitations = [ [] for i in range(nb_agents) ]
 print(action_limitations)
 
-nb_blocks = 80
-nb_trials = 1
+nb_blocks = 10
+nb_trials = 10
 
 state, goal = generate_solvable_problem(nb_blocks)
 tasks = [('move_blocks', goal)]
@@ -301,7 +301,7 @@ action_limitations[0] = ['unstack']
 run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
 
 
-# name = 'agent'
+name = 'agent'
 # generated_state = State('state')
 # generated_state.pos = {3: 'table', 1: 3, 2: 1}
 # generated_state.clear = {1: False, 2: True, 3: False}
@@ -314,6 +314,7 @@ run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,t
 # task = [('move_blocks',generated_goal)]
 # pyhop(generated_state,task,name,verbose=3)
 
+# colours = ['red','yellow']
 
 # name = 'agent1'
 # # state specification
@@ -323,11 +324,18 @@ run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,t
 # state2.holding={}
 # state2.holding[name] = False
 
+# state2.colour={}
+# for i in range(1,nb_blocks+1):
+#     colour =random.choice(colours)
+#     state.colour.update({i:colour})
+
+
+
 # # goal specification
 # goal2 = Goal('goal2')
 # goal2.pos={'5':'4', '2':'3','1':'table','3':'table','4':'table'}
 
-# # task specification
+# task specification
 # tasks2 = [('move_blocks', goal2)]
 
 # weird_state = State('weird')
@@ -341,7 +349,20 @@ run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,t
 # weird_goal.clear = {3: True, 5: True}
 # tasks = [('move_blocks', weird_goal)]
 
-# pyhop(weird_state,[('move_blocks', weird_goal)],name, verbose=3)
+# pyhop(weird_state,[('move_blocks', weird_goal)],name, verbose=1)
+
+# state4 = State('four')
+# goal4 = Goal('goal4')
+# state4.pos = {2:'table',1:2,4:'table',3:4}
+# state4.clear= {1:True, 2:False, 3: True, 4: False}
+# state4.holding = {}
+# state4.holding[name] = False
+# goal4.pos = {1:4}
+# goal4.clear = {1:True}
+# tasks = [('move_blocks', goal4)]
+
+# pyhop(state4,tasks,name, verbose=1)
+
 
 
 

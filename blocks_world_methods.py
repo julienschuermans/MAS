@@ -11,10 +11,23 @@ import pyhop
 Here are some helper functions that are used in the methods' preconditions.
 """
 
+def get_nb_blocks_above(b1,state):
+    above = 0
+    for upper, lower in state.pos.items():
+        if lower==b1:
+            above+=1
+            break
+    if above ==0:
+        return above
+    else:
+        return above + get_nb_blocks_above(upper,state)
+
 def is_done(b1,state,goal):
-    #print(state.pos[b1])
+    # print(state.pos[b1])
+    # print(b1)
+    # print(goal.pos)
     if b1 == 'table': return True
-    if state.pos[b1] == goal.pos[b1] and is_done(state.pos[b1],state,goal): return True
+    if b1 in goal.pos and state.pos[b1] == goal.pos[b1] and is_done(state.pos[b1],state,goal): return True
     if b1 in goal.pos and (goal.pos[b1] != state.pos[b1]):
         return False
     if (not b1 in goal.pos) and (state.pos[b1] in goal.pos.values()): return False
@@ -36,11 +49,15 @@ def status(b1,state,goal):
         return 'move-to-table'
     elif not (state.clear[goal.pos[b1]]):
         #print(state.pos[b1])
-        #if is_done(goal.pos[b1],state,goal):
-        #return 'swap'
-        if state.pos[b1]!='table':
+        if get_nb_blocks_above(goal.pos[b1],state)>1 and state.pos[b1]!='table':
+            print('no swap')
+            return 'move-to-table'
+        elif get_nb_blocks_above(goal.pos[b1],state)==1:
+            print('swap')
+            # if is_done(goal.pos[b1],state,goal):
             return 'swap'
         else:
+            print('waitingg')
             return 'waiting'
     elif is_done(goal.pos[b1],state,goal) and state.clear[goal.pos[b1]]:
         return 'move-to-block'
@@ -68,6 +85,8 @@ def moveb_m(state,goal):
     """
     for b1 in all_blocks(state):
         s = status(b1,state,goal)
+        print(s)
+        print(b1, get_nb_blocks_above(b1,state))
         if s == 'move-to-table':
             return [('move_one',b1,'table'),('move_blocks',goal)]
         elif s == 'move-to-block':
@@ -80,6 +99,7 @@ def moveb_m(state,goal):
     # if we get here, no blocks can be moved to their final locations
     b1 = pyhop.find_if(lambda x: status(x,state,goal) == 'waiting', all_blocks(state))
     if b1 != None:
+        print('no more waiting')
         return [('move_one',b1,'table'), ('move_blocks',goal)]
     #
     # if we get here, there are no blocks that need moving
@@ -103,9 +123,10 @@ pyhop.declare_methods('move_one',move1)
 
 def swap_m(state,b1,dest):
     obstacle = [key  for (key, value) in state.pos.items() if value == dest]
-    print(obstacle)
     if state.clear[b1] and state.clear[obstacle[0]]:
-        return ['swap',b1,obstacle]
+        return [('swap',b1,obstacle[0])]
+    else:
+        return False
 
 pyhop.declare_methods('swap_blocks',swap_m)
 

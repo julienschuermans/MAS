@@ -81,7 +81,7 @@ def stack(state,b,c,agent_name):
                 state.holding[agent_name][i] = False
                 break
         return state
-    if state.pos[b] == 'hand' and state.clear[c] == True and state.holding[agent_name]==b:
+    elif state.pos[b] == 'hand' and state.clear[c] == True and state.holding[agent_name]==b:
         state.pos[b] = c
         state.clear[b] = True
         state.holding[agent_name] = False
@@ -89,9 +89,25 @@ def stack(state,b,c,agent_name):
         return state
     else: return False
 
+def swap(state,b,c,agent_name):
+    if agent_name == 'virtualagent' and state.clear[c] == True and state.clear[b] == True and (False in state.holding['virtualagent']):
+        old_pos_b = state.pos[b]
+        old_pos_c = state.pos[c]
+        state.pos[b] = old_pos_c
+        state.pos[c] = old_pos_b
+        return state
+    elif state.clear[c] == True and state.clear[b] == True and state.holding[agent_name] == False:
+        old_pos_b = state.pos[b]
+        old_pos_c = state.pos[c]
+        state.pos[b] = old_pos_c
+        state.pos[c] = old_pos_b
+        return state
+    else: return False
+
+
 """
 Below, 'declare_operators(pickup, unstack, putdown, stack)' tells Pyhop
 what the operators are. Note that the operator names are *not* quoted.
 """
 
-pyhop.declare_operators(pickup, unstack, putdown, stack)
+pyhop.declare_operators(pickup, unstack, putdown, stack, swap)

@@ -8,7 +8,7 @@ class Agent():
 
     def __init__(self,name):
         self.__name__ = name
-        self.possible_actions = None
+        self.restricted_actions = None
         self.observed_state = None
         self.goal_state = None
         self.partial_plan = None        # single-agent plan returned by pyhop
@@ -31,13 +31,15 @@ class Agent():
 
     def assign_actions(self,actions):
         # an agent may be restricted to perform a subset of all possible actions
-        self.possible_actions = actions
+        self.restricted_actions = actions
 
     def plan(self,tasks):
         self.goal_state = tasks[0][1]
         self.partial_plan = pyhop(self.observed_state,tasks,self.get_name(),verbose=0)
         assert self.partial_plan != False #pyhop should never fail
         self.scheduled_actions = [False] * len(self.partial_plan)
+
+    #def evaluate_restrictions()
 
     def evaluate_dependencies(self, action, timeslot):
         # process self.partial_plan to detect dependencies between actions
@@ -143,11 +145,30 @@ class Agent():
         if self.final_plan == {}:
             # first agent to make a proposal = easy:
             # just propose to execute your first action in the first timeslot
-            action = Action(self,self.partial_plan[0])
+            for index in range(len(self.scheduled_actions)):
+                # print(str(self.partial_plan[index][0]), self.restricted_actions)
+                if str(self.partial_plan[index][0]) in self.restricted_actions:
+                    logging.debug('agent cannot execute this action')
+                    continue
+                else:
+                    action = Action(self,self.partial_plan[index])
+                    break
+
+
+                    # TO DO: what if all actions of partial plan are restricted?
+
             t = 0
-            proposal = (action, t)
-            logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
-            return proposal
+            if not self.evaluate_conflicts(action,t):
+                logging.debug('action in conflict with another one')
+            elif t in self.rejections.keys() and action in self.rejections[t]:
+                logging.debug('action has been rejected previously')
+            elif not self.evaluate_dependencies(action,t):
+                logging.debug('action destroys dependencies')
+            else:
+                proposal = (action, t) # found an action, timestamp combo that does not conflict with any of the agent's goals
+                logging.debug("new proposal: " + str(action) + ' at time ' + str(t))
+                return proposal
+
         else:
 
             proposal_impossible = False
@@ -160,8 +181,15 @@ class Agent():
 
                     if t > max(self.final_plan.keys()) + 4: #only consider actions close to end of current final plan
                         break #TODO how to tune this parameter?
+                        
+                    # print(str(self.partial_plan[index][0]), self.restricted_actions)
+                    if str(self.partial_plan[index][0]) in self.restricted_actions:
+                        logging.debug('agent cannot execute this action')
+                        continue
+                    else:
+                        action = Action(self,self.partial_plan[index])
+                        
 
-                    action = Action(self,self.partial_plan[index])
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
                     agentAlreadyHasTaskatTimeT = False
                     if t in self.final_plan.keys():

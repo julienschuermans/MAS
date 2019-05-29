@@ -136,5 +136,3 @@ def put_m(state,b1,b2):
         return False
 
 pyhop.declare_methods('put',put_m)
-
-

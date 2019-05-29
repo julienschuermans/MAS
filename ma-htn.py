@@ -69,8 +69,10 @@ def save_plan(plan,nb_agents,path_to_plan):
 def generate_state(nb_blocks):
     state = State('generated_state')
     state.pos = {}
-
-    nb_blocks_on_table = random.randint(1,nb_blocks//4) #don't put too many blocks on the table,
+    if nb_blocks > 4:
+        nb_blocks_on_table = random.randint(1,nb_blocks//4) #don't put too many blocks on the table,
+    else:
+        nb_blocks_on_table = random.randint(1,nb_blocks)
     # it makes the generated problems rather easy to solve
     shuffled_blocks  = [i for i in range(1,nb_blocks+1)]
     random.shuffle(shuffled_blocks)
@@ -136,6 +138,8 @@ def generate_solvable_problem(nb_blocks):
     # our assumption = pyhop can solve the block stacking task alone
 
     state, goal = generate_problem(nb_blocks=nb_blocks)
+    print_state(state)
+    print_goal(goal)
     tasks = [('move_blocks', goal)]
     canBeSolvedByPyhop = False
 
@@ -144,6 +148,7 @@ def generate_solvable_problem(nb_blocks):
             state.holding['dummy_agent'] = False
             single_agent_plan = pyhop(state,[('move_blocks', goal)],'dummy_agent')
             if single_agent_plan != False:
+                print('good plan')
                 logging.debug("found a valid problem")
                 state.holding = {}
                 canBeSolvedByPyhop = True
@@ -158,19 +163,20 @@ def generate_solvable_problem(nb_blocks):
 
     return state, goal
 
-def run_experiment(path_to_csv,path_to_best_plan,state,tasks,nb_agents, nb_blocks, nb_trials=1):
+def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials=1):
     """
     computes metrics, averaging over nb_trials
     writes a single new line with all results to the given csv file
     stores the shortest plan as a csv
     """
-
+    nb_agents = len(action_limitations)
     # agent initialisation
     agents = {} # dictionary of names mapping to Agent() objects
 
-    for i in range(nb_agents):
+    for i,restricted_actions in enumerate(action_limitations):
         name = 'A'+str(i)
         agents[name] = Agent(name)
+        agents[name].assign_actions(restricted_actions)
         state.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
     for agent in agents.values():
@@ -255,17 +261,90 @@ with open(path_to_results, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
-nb_agents = 8
-nb_blocks = 20
-nb_trials = 5
+path_to_results_constraints = './results_constraints.csv'
+path_to_best_plan_constraints = './best_plan_constraints.csv'
+
+# write the column headers in the csv with metrics
+with open(path_to_results_constraints, 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile, delimiter=',')
+    writer.writerow( \
+    ['problem size', \
+    'single agent plan length', \
+    '#agents', \
+    '#trials', \
+    'min time', \
+    'max time', \
+    'avg time', \
+    'min length', \
+    'max length', \
+    'avg length', \
+    'avg compression', \
+    'avg plan density'])
+
+nb_agents = 10
+action_limitations = [ [] for i in range(nb_agents) ]
+print(action_limitations)
+
+nb_blocks = 80
+nb_trials = 1
 
 state, goal = generate_solvable_problem(nb_blocks)
 tasks = [('move_blocks', goal)]
 
 print_state(state)
 print_goal(goal)
+# 
+run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
 
-run_experiment(path_to_results,path_to_best_plan,state,tasks,nb_agents, nb_blocks, nb_trials)
+action_limitations[1] = ['swap']
+action_limitations[0] = ['unstack']
+run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
+
+
+# name = 'agent'
+# generated_state = State('state')
+# generated_state.pos = {3: 'table', 1: 3, 2: 1}
+# generated_state.clear = {1: False, 2: True, 3: False}
+# generated_state.holding = {}
+# generated_state.holding[name] = False
+# generated_goal = Goal('goal')
+# generated_goal.pos = {1: 3, 2: 'table', 3: 2}
+# generated_goal.clear = {1: True}
+
+# task = [('move_blocks',generated_goal)]
+# pyhop(generated_state,task,name,verbose=3)
+
+
+# name = 'agent1'
+# # state specification
+# state2 = State('state2')
+# state2.pos={'1':'2','2':'5', '5':'3', '3':'4', '4':'table'}
+# state2.clear={'1':True, '2':False,'3':False, '4':False,'5':False}
+# state2.holding={}
+# state2.holding[name] = False
+
+# # goal specification
+# goal2 = Goal('goal2')
+# goal2.pos={'5':'4', '2':'3','1':'table','3':'table','4':'table'}
+
+# # task specification
+# tasks2 = [('move_blocks', goal2)]
+
+# weird_state = State('weird')
+# weird_goal = Goal('weirdgoal')
+# weird_state.pos = {2: 'table', 1: 'table', 3: 2, 4: 1, 5: 4}
+# weird_state.clear = {1: False, 2: False, 3: True, 4: False, 5: True}
+# weird_state.holding = {}
+# weird_state.holding[name] = False
+
+# weird_goal.pos = {3: 1, 5: 2}
+# weird_goal.clear = {3: True, 5: True}
+# tasks = [('move_blocks', weird_goal)]
+
+# pyhop(weird_state,[('move_blocks', weird_goal)],name, verbose=3)
+
+
+
 
 # for i in range(2,20,2):
 #     logging.info("number of agents: " + str(i))
@@ -299,6 +378,7 @@ run_experiment(path_to_results,path_to_best_plan,state,tasks,nb_agents, nb_block
 #       - limit actions of a certain agent
 #       - don't care at all in partial plan
 #       - only extra constraints in make_proposal
+    # ==> DONE
 #
 # 2) JULIEN: easily scale to larger problems.
 #       - generate a 10/100/1000-burger initial state and corresponding goals

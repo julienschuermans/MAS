@@ -261,6 +261,7 @@ with open(path_to_results, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
+<<<<<<< HEAD
 path_to_results_constraints = './results_constraints.csv'
 path_to_best_plan_constraints = './best_plan_constraints.csv'
 
@@ -286,6 +287,10 @@ action_limitations = [ [] for i in range(nb_agents) ]
 print(action_limitations)
 
 nb_blocks = 80
+=======
+nb_agents = 2
+nb_blocks = 3
+>>>>>>> a79d4a2d9ae41c4e006d4b028f74044e8d258bfa
 nb_trials = 1
 
 state, goal = generate_solvable_problem(nb_blocks)

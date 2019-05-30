@@ -281,11 +281,11 @@ with open(path_to_results_constraints, 'w', newline='') as csvfile:
     'avg compression', \
     'avg plan density'])
 
-nb_agents = 2
+nb_agents = 5
 action_limitations = [ [] for i in range(nb_agents) ]
 print(action_limitations)
 
-nb_blocks = 10
+nb_blocks = 20
 nb_trials = 10
 
 state, goal = generate_solvable_problem(nb_blocks)
@@ -293,13 +293,28 @@ tasks = [('move_blocks', goal)]
 
 print_state(state)
 print_goal(goal)
-# 
+#
 run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
 
 action_limitations[1] = ['swap']
 action_limitations[0] = ['unstack']
 run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
 
+
+# nb_agents = 2
+# action_limitations = [ [] for i in range(nb_agents) ]
+# nb_blocks = 5
+# nb_trials = 1
+# state = State('state')
+# state.pos = {4:'table',5:4,2:5,1:2,3:1}
+# state.clear = {1:False,2:False,3:True,4:False,5:False}
+# state.holding = {}
+#
+# goal = Goal('goal')
+# goal.pos = {1:'table',2:4,3:1,4:3,5:2}
+# goal.clear = {5:True}
+# tasks = [('move_blocks',goal)]
+# run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
 
 name = 'agent'
 # generated_state = State('state')

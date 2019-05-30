@@ -23,9 +23,6 @@ def get_nb_blocks_above(b1,state):
         return above + get_nb_blocks_above(upper,state)
 
 def is_done(b1,state,goal):
-    # print(state.pos[b1])
-    # print(b1)
-    # print(goal.pos)
     if b1 == 'table': return True
     if b1 in goal.pos and state.pos[b1] == goal.pos[b1] and is_done(state.pos[b1],state,goal): return True
     if b1 in goal.pos and (goal.pos[b1] != state.pos[b1]):
@@ -48,16 +45,11 @@ def status(b1,state,goal):
     elif goal.pos[b1] == 'table':
         return 'move-to-table'
     elif not (state.clear[goal.pos[b1]]):
-        #print(state.pos[b1])
         if get_nb_blocks_above(goal.pos[b1],state)>1 and state.pos[b1]!='table':
-            print('no swap')
             return 'move-to-table'
         elif get_nb_blocks_above(goal.pos[b1],state)==1 and state.pos[b1]!=goal.pos[b1]:
-            print('swap')
-            # if is_done(goal.pos[b1],state,goal):
             return 'swap'
         else:
-            print('waitingg')
             return 'waiting'
     elif is_done(goal.pos[b1],state,goal) and state.clear[goal.pos[b1]]:
         return 'move-to-block'
@@ -79,14 +71,12 @@ def moveb_m(state,goal):
     This method implements the following block-stacking algorithm:
     If there's a block that can be moved to its final position, then
     do so and call move_blocks recursively. Otherwise, if there's a
-    block that needs to be moved and can be moved to the table, then 
+    block that needs to be moved and can be moved to the table, then
     do so and call move_blocks recursively. Otherwise, no blocks need
     to be moved.
     """
     for b1 in all_blocks(state):
         s = status(b1,state,goal)
-        # print(s)
-        # print(b1, get_nb_blocks_above(b1,state))
         if s == 'move-to-table':
             return [('move_one',b1,'table'),('move_blocks',goal)]
         elif s == 'move-to-block':
@@ -99,7 +89,6 @@ def moveb_m(state,goal):
     # if we get here, no blocks can be moved to their final locations
     b1 = pyhop.find_if(lambda x: status(x,state,goal) == 'waiting', all_blocks(state))
     if b1 != None:
-        print('no more waiting')
         return [('move_one',b1,'table'), ('move_blocks',goal)]
     #
     # if we get here, there are no blocks that need moving
@@ -164,5 +153,3 @@ def put_m(state,b1,b2):
         return False
 
 pyhop.declare_methods('put',put_m)
-
-

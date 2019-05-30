@@ -56,8 +56,10 @@ class Agent():
         for step in range(timeslot): #execute all actions with t<timeslot that have already been agreed upon
             if step in self.final_plan.keys():
                 if len(self.final_plan[step]) == 1: #only 1 action at this step
+                    # logging.debug('simulating ' + str(self.final_plan[step][0]))
                     sim.update(self.final_plan[step][0])
                 elif len(self.final_plan[step]) > 1: # multiple in parallel
+                    # logging.debug('simulating ' + str([str(x) for  x in self.final_plan[step]]))
                     sim.update_parallel(self.final_plan[step])
                 else:
                     raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -69,14 +71,19 @@ class Agent():
         # apply action currently under investigation at t=timeslot
         if timeslot in self.final_plan.keys():
             try:
+                # logging.debug('simulating ' + str(self.final_plan[timeslot][0]) + ' and ' + str(action))
+
                 # perform the new action in parallel with those already scheduled
                 sim.update_parallel(self.final_plan[timeslot] + [action])
             except RuntimeError:
+                # logging.debug('dependency violated in step 2a')
                 return False
         else:
             try:
+                # logging.debug('simulating ' + str(action))
                 sim.update(action)
             except RuntimeError:
+                # logging.debug('dependency violated in step 2b')
                 return False
 
         # (3) apply all other actions with t>timeslot that were already in the final_plan.
@@ -85,14 +92,18 @@ class Agent():
             for step in range(timeslot+1, max(self.final_plan.keys())+1):
                 if step in self.final_plan.keys():
                     if len(self.final_plan[step]) == 1: #only 1 action at this step
+                        # logging.debug('simulating ' + str(self.final_plan[step][0]))
                         try:
                             sim.update(self.final_plan[step][0])
                         except RuntimeError:
+                            # logging.debug('dependency violated in step 3a')
                             return False
                     elif len(self.final_plan[step]) > 1:  # multiple in parallel
+                        # logging.debug('simulating ' + [str(x) for  x in self.final_plan[step]])
                         try:
                             sim.update_parallel(self.final_plan[step])
                         except RuntimeError:
+                            # logging.debug('dependency violated in step 3b')
                             return False
                     else:
                         raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -102,17 +113,41 @@ class Agent():
         # If any update returns false, the proposed action has ruined some dependencies.
         virtualAgent = Agent('virtualagent')
         sim.state.holding['virtualagent'] = copyallHoldingVariables(sim.state)
+
+        action_encountered_before = False
+
         for index in range(len(self.partial_plan)):
             action_tuple = self.partial_plan[index]
             # only check actions in partial plan that have not been scheduled yet
-            # also, don't simulate an action if it's equal to the one that has been proposed
-            if not self.scheduled_actions[index] and not (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
+            # also, don't simulate an action if it's the same one that has been proposed
+            # take special care when the same action appears multiple times in the (partial) plan!
+
+            action_not_scheduled = not self.scheduled_actions[index]
+            action_equal_to_proposal = False
+
+            if action_not_scheduled:
+                if action_encountered_before and (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
+                    action_equal_to_proposal = False #not the same since youve encountered it before
+                else:
+                    if (action.operator==self.partial_plan[index][0] and action.arguments==self.partial_plan[index][1:]):
+                        action_equal_to_proposal = True
+                        action_encountered_before = True
+                    else:
+                        action_equal_to_proposal = False
+
+            if action_not_scheduled and not action_equal_to_proposal:
+                # logging.debug('simulating ' + str(action_tuple))
                 try:
                     # pretend that all these actions are performed in series by a single agent.
                     # in principle ok that different agents might stack/unstack (this is just a simulation)
                     sim.update(Action(virtualAgent,action_tuple))
                 except RuntimeError:
+                    # logging.debug('dependency violated in step 4 during simulation of ' + str(action_tuple))
                     return False
+            else:
+                pass
+                # logging.debug('not simulating ' + str(action_tuple))
+
         if action.agent != self:
             # don't print this info when an agent uses evaluate_dependencies() as a part of make_proposal
            logging.debug(str(action) + ' at time ' + str(timeslot) + ' does not violate dependencies of agent ' + self.get_name())
@@ -181,14 +216,14 @@ class Agent():
 
                     if t > max(self.final_plan.keys()) + 4: #only consider actions close to end of current final plan
                         break #TODO how to tune this parameter?
-                        
+
                     # print(str(self.partial_plan[index][0]), self.restricted_actions)
                     if str(self.partial_plan[index][0]) in self.restricted_actions:
                         logging.debug('agent cannot execute this action')
                         continue
                     else:
                         action = Action(self,self.partial_plan[index])
-                        
+
 
                     logging.debug('trying at t=' + str(t) + ',' + str(action))
                     agentAlreadyHasTaskatTimeT = False
@@ -234,8 +269,11 @@ class Agent():
 
         for i in range(len(self.partial_plan)):
             a = self.partial_plan[i]
-            if a[0] == action.operator and a[1:]==action.arguments:
+
+            # only set the first unscheduled action to 'scheduled'
+            if not self.scheduled_actions[i] and a[0] == action.operator and a[1:]==action.arguments:
                 self.scheduled_actions[i] = True
+                break
 
     def print_final_plan(self):
         for step in sorted(self.final_plan.keys()):

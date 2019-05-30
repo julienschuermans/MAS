@@ -52,7 +52,7 @@ def status(b1,state,goal):
         if get_nb_blocks_above(goal.pos[b1],state)>1 and state.pos[b1]!='table':
             print('no swap')
             return 'move-to-table'
-        elif get_nb_blocks_above(goal.pos[b1],state)==1:
+        elif get_nb_blocks_above(goal.pos[b1],state)==1 and state.pos[b1]!=goal.pos[b1]:
             print('swap')
             # if is_done(goal.pos[b1],state,goal):
             return 'swap'
@@ -85,8 +85,8 @@ def moveb_m(state,goal):
     """
     for b1 in all_blocks(state):
         s = status(b1,state,goal)
-        print(s)
-        print(b1, get_nb_blocks_above(b1,state))
+        # print(s)
+        # print(b1, get_nb_blocks_above(b1,state))
         if s == 'move-to-table':
             return [('move_one',b1,'table'),('move_blocks',goal)]
         elif s == 'move-to-block':

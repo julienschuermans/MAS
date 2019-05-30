@@ -1,0 +1,3 @@
+timeslot,0,1,2,3,4,5,6
+A0,,"unstack(1, 6) red","putdown(1,) red","unstack(2, 9) blue","putdown(2,) blue","unstack(6, 3) red","putdown(6,) red"
+A1,"unstack(4, 1) blue","putdown(4,) blue","unstack(5, 2) yellow","putdown(5,) yellow","pickup(4,) blue",,

@@ -43,12 +43,13 @@ path_to_best_plan = './best_plan_' + str(experiment_id) + '.csv'
 path_to_results_constraints = './results_constrained_' + str(experiment_id) + '.csv'
 path_to_best_plan_constraints = './best_plan_constrained_' + str(experiment_id) + '.csv'
 
+colours_list = ['red','yellow','blue']
 write_csv_header(path_to_results)
 write_csv_header(path_to_results_constraints)
 
-nb_agents = 5
-nb_blocks = 20
-nb_trials = 10
+nb_agents = 2
+nb_blocks = 10
+nb_trials = 1
 
 action_limitations = [ [] for i in range(nb_agents) ]
 
@@ -57,6 +58,6 @@ tasks = [('move_blocks', goal)]
 
 run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
 
-action_limitations[1] = ['swap']
-action_limitations[0] = ['unstack']
-run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
+action_limitations[1] = ['red']
+action_limitations[0] = ['yellow']
+run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)

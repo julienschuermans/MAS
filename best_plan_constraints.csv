@@ -1,3 +1,0 @@
-timeslot,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
-A0,"swap(3, 8)",,,"pickup(8,)",,,,,,,,,,,,,,,,"stack(8, 9)"
-A1,,"unstack(8, 6)","putdown(8,)","unstack(6, 5)","putdown(6,)","unstack(5, 2)","stack(5, 3)","unstack(2, 10)","putdown(2,)","pickup(6,)","stack(6, 2)","unstack(10, 1)","putdown(10,)","unstack(1, 4)","putdown(1,)","unstack(4, 9)","stack(4, 1)","pickup(9,)","stack(9, 10)",

@@ -1,2 +1,0 @@
-problem size,single agent plan length,#agents,#trials,min time,max time,avg time,min length,max length,avg length,avg compression,avg plan density
-10,21,2,10,0.3994,0.7459,0.5993,20,20,20,1.0500,0.5250

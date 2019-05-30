@@ -1,4 +1,7 @@
+
+import multiprocessing
 from ma_htn import *
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -35,28 +38,52 @@ tasks3 = [('move_blocks', goal3)]
 
 ##### EXPERIMENT 1
 
-experiment_id = 1
+# experiment_id = 1
+#
+# path_to_results = './results_' + str(experiment_id) + '.csv'
+# path_to_best_plan = './best_plan_' + str(experiment_id) + '.csv'
+#
+# path_to_results_constrained = './results_constrained_' + str(experiment_id) + '.csv'
+# path_to_best_plan_constrained = './best_plan_constrained_' + str(experiment_id) + '.csv'
+#
+# write_csv_header(path_to_results)
+# write_csv_header(path_to_best_plan_constrained)
+#
+# nb_agents = 5
+# nb_blocks = 20
+# nb_trials = 10
+#
+# action_limitations = [ [] for i in range(nb_agents) ]
+#
+# state, goal = generate_solvable_problem(nb_blocks)
+# tasks = [('move_blocks', goal)]
+#
+# run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
+#
+# action_limitations[1] = ['swap']
+# action_limitations[0] = ['unstack']
+# run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
+
+
+##### EXPERIMENT 2
+"""Test to see how the planning algorithm performs in function of the number of agents."""
+experiment_id = 2
 
 path_to_results = './results_' + str(experiment_id) + '.csv'
 path_to_best_plan = './best_plan_' + str(experiment_id) + '.csv'
 
-path_to_results_constraints = './results_constrained_' + str(experiment_id) + '.csv'
-path_to_best_plan_constraints = './best_plan_constrained_' + str(experiment_id) + '.csv'
-
 write_csv_header(path_to_results)
-write_csv_header(path_to_results_constraints)
 
-nb_agents = 5
 nb_blocks = 20
 nb_trials = 10
-
-action_limitations = [ [] for i in range(nb_agents) ]
 
 state, goal = generate_solvable_problem(nb_blocks)
 tasks = [('move_blocks', goal)]
 
-run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials)
+def experiment_wrapper(nb_agents):
+    action_limitations = [ [] for i in range(nb_agents) ]
+    run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations,nb_blocks,nb_trials)
+    return 0
 
-action_limitations[1] = ['swap']
-action_limitations[0] = ['unstack']
-run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
+pool = multiprocessing.Pool(4)
+out = zip(pool.map(experiment_wrapper, range(2, 9)))

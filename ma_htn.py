@@ -72,20 +72,20 @@ def generate_goal(nb_blocks):
     shuffled_blocks  = [i for i in range(1,nb_blocks+1)]
     random.shuffle(shuffled_blocks)
 
+
+    def check(block,candidate):
+        if block == candidate:
+            return False
+        elif candidate in goal.pos.keys():
+            return check(block,goal.pos[candidate]) #check the block under the candidate
+        else:
+            return True # the candidate is free
+
     for j in range(nb_fixed_blocks):
         i = shuffled_blocks[j]
         if random.randint(1,nb_fixed_blocks) < random.random()*nb_fixed_blocks:
             goal.pos[i] = 'table'
         else:
-
-            def check(block,candidate):
-                if block == candidate:
-                    return False
-                elif candidate in goal.pos.keys():
-                    return check(block,goal.pos[candidate]) #check the block under the candidate
-                else:
-                    return True # the candidate is free
-
             potential_destinations = list(set([k for k in shuffled_blocks if check(i,k)]) - set(goal.pos.values()))
             if len(potential_destinations) > 0:
                 dest = random.choice(potential_destinations)
@@ -94,7 +94,6 @@ def generate_goal(nb_blocks):
     goal.clear = {x:True for x in list(set(goal.pos.keys())-set(goal.pos.values()))}
 
     return goal
-
 
 
 def generate_problem(nb_blocks):
@@ -106,8 +105,6 @@ def generate_solvable_problem(nb_blocks):
     # our assumption = pyhop can solve the block stacking task alone
 
     state, goal = generate_problem(nb_blocks=nb_blocks)
-    print_state(state)
-    print_goal(goal)
     tasks = [('move_blocks', goal)]
     canBeSolvedByPyhop = False
 
@@ -116,7 +113,6 @@ def generate_solvable_problem(nb_blocks):
             state.holding['dummy_agent'] = False
             single_agent_plan = pyhop(state,[('move_blocks', goal)],'dummy_agent')
             if single_agent_plan != False:
-                print('good plan')
                 logging.debug("found a valid problem")
                 state.holding = {}
                 canBeSolvedByPyhop = True
@@ -131,12 +127,31 @@ def generate_solvable_problem(nb_blocks):
 
     return state, goal
 
+def write_csv_header(path):
+    # write the column headers in the csv with metrics
+    with open(path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow( \
+        ['problem size', \
+        'single agent plan length', \
+        '#agents', \
+        '#trials', \
+        'min time', \
+        'max time', \
+        'avg time', \
+        'min length', \
+        'max length', \
+        'avg length', \
+        'avg compression', \
+        'avg plan density'])
+
 def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials=1):
     """
     computes metrics, averaging over nb_trials
     writes a single new line with all results to the given csv file
     stores the shortest plan as a csv
     """
+
     nb_agents = len(action_limitations)
     # agent initialisation
     agents = {} # dictionary of names mapping to Agent() objects
@@ -204,21 +219,4 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
                 )
 
         save_plan(best_plan, nb_agents, path_to_best_plan)
-
-def write_csv_header(path):
-    # write the column headers in the csv with metrics
-    with open(path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow( \
-        ['problem size', \
-        'single agent plan length', \
-        '#agents', \
-        '#trials', \
-        'min time', \
-        'max time', \
-        'avg time', \
-        'min length', \
-        'max length', \
-        'avg length', \
-        'avg compression', \
-        'avg plan density'])
+        return 0

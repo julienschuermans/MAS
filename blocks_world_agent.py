@@ -39,8 +39,6 @@ class Agent():
         assert self.partial_plan != False #pyhop should never fail
         self.scheduled_actions = [False] * len(self.partial_plan)
 
-    #def evaluate_restrictions()
-
     def evaluate_dependencies(self, action, timeslot):
         # process self.partial_plan to detect dependencies between actions
         # some actions **have** to be performed before others.

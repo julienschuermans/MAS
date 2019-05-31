@@ -18,7 +18,7 @@ def print_plan(plan):
             print(action)
 
 
-def save_plan(plan,nb_agents,path_to_plan):
+def save_plan(plan,nb_agents,path_to_plan, colour_dict ={}):
 
     nb_timesteps = len(plan)
 
@@ -29,7 +29,10 @@ def save_plan(plan,nb_agents,path_to_plan):
         def fill(agent_id,t):
             for action in plan[t]:
                 if action.agent.get_name() == 'A' + str(agent_id):
-                    return action.operator + str(action.arguments)
+                    if colour_dict != {}:
+                        return action.operator + str(action.arguments) + ' ' + colour_dict[action.arguments[0]]
+                    else:
+                        return action.operator + str(action.arguments)
             return ''
 
         for i in range(nb_agents):
@@ -43,7 +46,7 @@ def convert_single_agent_plan(plan):
         better_plan[t] = [bwt.Action(agent,plan[t])]
     return better_plan
 
-def generate_state(nb_blocks):
+def generate_state(nb_blocks, colours= []):
     state = State('generated_state')
     state.pos = {}
     if nb_blocks > 4:
@@ -68,6 +71,10 @@ def generate_state(nb_blocks):
         if j not in state.pos.values():
             state.clear.update({j:True})
     state.holding = {}
+
+    if colours != []:
+        state.colours = {}
+
     return state
 
 def generate_goal(nb_blocks):
@@ -103,11 +110,11 @@ def generate_goal(nb_blocks):
     return goal
 
 
-def generate_problem(nb_blocks):
-    return generate_state(nb_blocks), generate_goal(nb_blocks)
+def generate_problem(nb_blocks, colours=[]):
+    return generate_state(nb_blocks, colours), generate_goal(nb_blocks)
 
 
-def generate_solvable_problem(nb_blocks):
+def generate_solvable_problem(nb_blocks, colours=[]):
     # make sure that the generated problem can be solved by a single agent
     # our assumption = pyhop can solve the block stacking task alone
 
@@ -122,6 +129,7 @@ def generate_solvable_problem(nb_blocks):
             if single_agent_plan != False:
                 logging.debug("found a valid problem")
                 state.holding = {}
+                state.colours = {}
                 canBeSolvedByPyhop = True
             else:
                 logging.debug("pyhop can't solve this, try again")
@@ -179,8 +187,18 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
         agents[name].assign_actions(restricted_actions)
         state.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
+    if len(colours) >0:
+        for i in range(1,nb_blocks+1):
+            colour =random.choice(colours)
+            state.colours[i]=colour
+        print(state.colours)
+
     for agent in agents.values():
-        agent.observe(state) #what happens when agents don't observe everything?
+        if len(colours) >0:
+            agent.observe(state,state.colours) #what happens when agents don't observe everything?
+        else:
+            agent.observe(state) #what happens when agents don't observe everything?
+
         agent.plan(tasks) #use pyphop to generate a personal plan
 
     single_agent_plan = agents['A0'].partial_plan
@@ -240,9 +258,19 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
                 + ['{:.4f}'.format(single_agent_plan_length/(np.ceil(np.mean(plan_lengths))*nb_agents))] \
                 )
 
-        save_plan(best_plan, nb_agents, path_to_best_plan)
-        save_plan(worst_plan, nb_agents, path_to_worst_plan)
-        single_agent_plan = convert_single_agent_plan(single_agent_plan)
-        save_plan(single_agent_plan, 1, path_to_single_agent_plan)
+
+
+
+        if colours!= []:
+            colour_dict = state.colours
+            save_plan(best_plan, nb_agents, path_to_best_plan,colour_dict)
+            save_plan(worst_plan, nb_agents, path_to_worst_plan,colour_dict)
+            single_agent_plan = convert_single_agent_plan(single_agent_plan)
+            save_plan(single_agent_plan, 1, path_to_single_agent_plan,colour_dict)
+        else:
+            save_plan(best_plan, nb_agents, path_to_best_plan)
+            save_plan(worst_plan, nb_agents, path_to_worst_plan)
+            single_agent_plan = convert_single_agent_plan(single_agent_plan)
+            save_plan(single_agent_plan, 1, path_to_single_agent_plan)
 
         return 0

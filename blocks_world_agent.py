@@ -26,8 +26,9 @@ class Agent():
     def get_name(self):
         return self.__name__
 
-    def observe(self,state):
+    def observe(self,state, colour_dict={}):
         self.observed_state = state
+        self.colour_dict = colour_dict
 
     def assign_actions(self,actions):
         # an agent may be restricted to perform a subset of all possible actions
@@ -178,16 +179,28 @@ class Agent():
         if self.final_plan == {}:
             # first agent to make a proposal = easy:
             # just propose to execute your first action in the first timeslot
+            action = False
+
             for index in range(len(self.scheduled_actions)):
                 # print(str(self.partial_plan[index][0]), self.restricted_actions)
                 if str(self.partial_plan[index][0]) in self.restricted_actions:
                     logging.debug('agent cannot execute this action')
                     continue
+
+                elif self.colour_dict != {}:
+                    if self.colour_dict[self.partial_plan[index][1]] in self.restricted_actions:
+                        logging.debug('agent cannot handle blocks with the colour'+ str(self.colour_dict[self.partial_plan[index][1]]))
+                        continue
+                    else:
+                        action = Action(self,self.partial_plan[index])
+                        break
+
                 else:
                     action = Action(self,self.partial_plan[index])
                     break
 
-
+            if not action:
+                return None                
                     # TO DO: what if all actions of partial plan are restricted?
 
             t = 0
@@ -219,6 +232,15 @@ class Agent():
                     if str(self.partial_plan[index][0]) in self.restricted_actions:
                         logging.debug('agent cannot execute this action')
                         continue
+
+                    elif self.colour_dict != {}:
+                        if self.colour_dict[self.partial_plan[index][1]] in self.restricted_actions:
+                            logging.debug('agent cannot handle blocks with the colour'+ str(self.colour_dict[self.partial_plan[index][1]]))
+                            continue
+
+                        else:
+                            action = Action(self,self.partial_plan[index])
+
                     else:
                         action = Action(self,self.partial_plan[index])
 
@@ -321,20 +343,38 @@ class MultiAgentNegotiation():
 
         all_agents_happy = True
 
+        last_x_chosen_ones = []
+        nb_times_fail = 0
+        everyone_chosen = 0
+
         for agent in self.agents:
             happy = agent.check_final_plan()
             if not happy:
                 all_agents_happy = False
 
         while not all_agents_happy:
+
+            if nb_times_fail > 5*len(self.agents):
+                print('long')
+                for agent in self.agents:
+                    if agent.get_name() in last_x_chosen_ones[-5*len(self.agents):]:
+                        everyone_chosen+=1
+                if everyone_chosen==len(self.agents):
+                    logging.info('No solution is found')
+                    return self.agents[0].final_plan
             #  pick a random agent from the list
             the_chosen_one = random.choice(self.agents)
+            print(the_chosen_one.get_name())
+            last_x_chosen_ones.append(the_chosen_one.get_name())
             proposal = the_chosen_one.make_proposal()
 
             # Does the chosen one have a proposal? if not, pick another agent
             if proposal == None:
+                print('none')
+                nb_times_fail+=1
                 continue
             else:
+                print('proposal')
                 (action, timeslot) = proposal
 
             # Everyone else has to agree to the proposal.
@@ -349,10 +389,14 @@ class MultiAgentNegotiation():
                         break #one of the agents has disagreed. no reason to check the others.
 
             if evaluation == True:
+                print('proposal accepted')
+                nb_times_fail = 0
                 # all agents agree, add it to their final plans
                 for agent in self.agents:
                     agent.update_final_plan(action,timeslot)
             else:
+                print('proposal rejected')
+                # nb_times_fail +=1
                 # some agent has rejected the proposal
                 for agent in self.agents:
                     agent.update_rejections(action,timeslot)

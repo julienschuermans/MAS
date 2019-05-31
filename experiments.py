@@ -71,7 +71,10 @@ experiment_id = 3
 
 path_to_results = './experiment' + str(experiment_id) + '/'
 
+colours_list = ['red','yellow','blue']
+
 write_csv_header(path_to_results)
+
 
 nb_blocks = 20
 nb_trials = 5
@@ -83,6 +86,7 @@ def experiment_wrapper(nb_agents):
     action_limitations = [ [] for i in range(nb_agents) ]
     run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials)
     return 0
+
 
 pool = multiprocessing.Pool(4)
 out = zip(pool.map(experiment_wrapper, range(2, 9)))

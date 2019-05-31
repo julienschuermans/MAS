@@ -6,8 +6,47 @@ logging.basicConfig(level=logging.ERROR)
 
 experiment_id = 5 # to select a single experiment
 RUN_ALL = False
+RUN_DEMO_ONLY = True
 
 colours_list = ['red', 'blue', 'yellow']
+
+
+if RUN_DEMO_ONLY:
+    RUN_ALL = False
+    experiment_id = 'demo'
+
+    print("""
+    ****************************************
+    Multi-agent HTN planning demo
+    ****************************************
+    """)
+    nb_blocks = 15
+    state, goal = generate_solvable_problem(nb_blocks)
+
+    print("- Define state:")
+    print_state(state)
+    print('')
+    print("- Define goal:")
+    print_goal(goal)
+    print('')
+
+    path_to_results = './demo_results/'
+    if os.path.isdir(path_to_results):
+        logging.error("Directory './demo_results/' already exists! Remove it and try again.")
+        exit()
+    write_csv_header(path_to_results)
+
+    tasks = [('move_blocks', goal)]
+
+    print("This shouldn't take too long. Relax.\n")
+    nb_trials = 5
+    for nb_agents in range(2,12,4):
+        print("- Solving problem with %d agents" % nb_agents)
+        action_limitations = [ [] for i in range(nb_agents) ]
+        run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials, colours_list)
+
+    print("- Done. Results can be found here: \n" + os.path.abspath(path_to_results))
+
 
 if experiment_id == 1 or RUN_ALL:
     if RUN_ALL:

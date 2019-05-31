@@ -124,10 +124,6 @@ def generate_solvable_problem(nb_blocks, colours=[]):
                 state.holding = {}
                 state.colours = {}
                 canBeSolvedByPyhop = True
-                if len(colours) >0:
-                    for i in range(1,nb_blocks+1):
-                        colour =random.choice(colours)
-                        state.colours[i]=colour
             else:
                 logging.debug("pyhop can't solve this, try again")
                 state, goal = generate_problem(nb_blocks=nb_blocks)
@@ -174,7 +170,11 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
         agents[name].assign_actions(restricted_actions)
         state.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
-
+    if len(colours) >0:
+        for i in range(1,nb_blocks+1):
+            colour =random.choice(colours)
+            state.colours[i]=colour
+        print(state.colours)
 
     for agent in agents.values():
         if len(colours) >0:

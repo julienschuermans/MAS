@@ -16,7 +16,6 @@ class Agent():
         self.scheduled_actions = []     # a list the same size as partial_plan, indicating which actions have been scheduled in the final_plan already
         self.rejections = {}            # dictionary mapping timeslots to rejected Actions
         self.planning_horizon = 50
-        #TODO planning horizon recht evenredig met problemsize/nb_agents ?
 
     def reset(self):
         self.final_plan = {}
@@ -41,7 +40,7 @@ class Agent():
         self.scheduled_actions = [False] * len(self.partial_plan)
 
     def evaluate_dependencies(self, action, timeslot):
-        # process self.partial_plan to detect dependencies between actions
+        # Process self.partial_plan to detect dependencies between actions
         # some actions **have** to be performed before others.
         # This means that when you evaluate action X, all subsequent actions should still
         # be possible.
@@ -55,10 +54,8 @@ class Agent():
         for step in range(timeslot): #execute all actions with t<timeslot that have already been agreed upon
             if step in self.final_plan.keys():
                 if len(self.final_plan[step]) == 1: #only 1 action at this step
-                    # logging.debug('simulating ' + str(self.final_plan[step][0]))
                     sim.update(self.final_plan[step][0])
                 elif len(self.final_plan[step]) > 1: # multiple in parallel
-                    # logging.debug('simulating ' + str([str(x) for  x in self.final_plan[step]]))
                     sim.update_parallel(self.final_plan[step])
                 else:
                     raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -70,19 +67,14 @@ class Agent():
         # apply action currently under investigation at t=timeslot
         if timeslot in self.final_plan.keys():
             try:
-                # logging.debug('simulating ' + str(self.final_plan[timeslot][0]) + ' and ' + str(action))
-
                 # perform the new action in parallel with those already scheduled
                 sim.update_parallel(self.final_plan[timeslot] + [action])
             except RuntimeError:
-                # logging.debug('dependency violated in step 2a')
                 return False
         else:
             try:
-                # logging.debug('simulating ' + str(action))
                 sim.update(action)
             except RuntimeError:
-                # logging.debug('dependency violated in step 2b')
                 return False
 
         # (3) apply all other actions with t>timeslot that were already in the final_plan.
@@ -91,18 +83,14 @@ class Agent():
             for step in range(timeslot+1, max(self.final_plan.keys())+1):
                 if step in self.final_plan.keys():
                     if len(self.final_plan[step]) == 1: #only 1 action at this step
-                        # logging.debug('simulating ' + str(self.final_plan[step][0]))
                         try:
                             sim.update(self.final_plan[step][0])
                         except RuntimeError:
-                            # logging.debug('dependency violated in step 3a')
                             return False
                     elif len(self.final_plan[step]) > 1:  # multiple in parallel
-                        # logging.debug('simulating ' + [str(x) for  x in self.final_plan[step]])
                         try:
                             sim.update_parallel(self.final_plan[step])
                         except RuntimeError:
-                            # logging.debug('dependency violated in step 3b')
                             return False
                     else:
                         raise RuntimeError("This should not happen. something's wrong. No actions planned at step: " + str(step))
@@ -135,17 +123,12 @@ class Agent():
                         action_equal_to_proposal = False
 
             if action_not_scheduled and not action_equal_to_proposal:
-                # logging.debug('simulating ' + str(action_tuple))
                 try:
                     # pretend that all these actions are performed in series by a single agent.
                     # in principle ok that different agents might stack/unstack (this is just a simulation)
                     sim.update(Action(virtualAgent,action_tuple))
                 except RuntimeError:
-                    # logging.debug('dependency violated in step 4 during simulation of ' + str(action_tuple))
                     return False
-            else:
-                pass
-                # logging.debug('not simulating ' + str(action_tuple))
 
         if action.agent != self:
             # don't print this info when an agent uses evaluate_dependencies() as a part of make_proposal
@@ -200,8 +183,8 @@ class Agent():
                     break
 
             if not action:
+                logging.debug('Agent ' + self.get_name()+ ' does not have a proposal.')
                 return None
-                    # TO DO: what if all actions of partial plan are restricted?
 
             t = 0
             if not self.evaluate_conflicts(action,t):
@@ -270,6 +253,7 @@ class Agent():
                 if t>self.planning_horizon:
                     proposal_impossible = True
 
+        logging.debug('Agent ' + self.get_name()+ ' does not have a proposal.')
         return None # a signal that the agent is happy/has no more tasks to complete
 
 
@@ -358,11 +342,11 @@ class MultiAgentNegotiation():
                 # the problem is unsolvable, can be the case when the constraints are too restrictive
                 for agent in self.agents:
                     if agent.get_name() in last_x_chosen_ones[-5*len(self.agents):]:
-                        everyone_chosen+=1
-                if everyone_chosen==len(self.agents):
-                    # exiting the loop when too many iterations "None" is returned as proposal, 
+                        everyone_chosen += 1
+                if everyone_chosen == len(self.agents):
+                    # exiting the loop when too many iterations "None" is returned as proposal,
                     # and every agent has made a proposal at least once in the last 5*nb_agents steps
-                    logging.info('No solution is found')
+                    logging.warning('No solution is found')
                     return None     # if you want to see which blocks can't be moved anymore: return self.agents[0].final_plan
             #  pick a random agent from the list
             the_chosen_one = random.choice(self.agents)
@@ -388,12 +372,11 @@ class MultiAgentNegotiation():
                         break #one of the agents has disagreed. no reason to check the others.
 
             if evaluation == True:
-                nb_times_fail = 0
+                nb_times_fail = 0 #reset counter
                 # all agents agree, add it to their final plans
                 for agent in self.agents:
                     agent.update_final_plan(action,timeslot)
             else:
-                # nb_times_fail +=1
                 # some agent has rejected the proposal
                 for agent in self.agents:
                     agent.update_rejections(action,timeslot)

@@ -2,9 +2,9 @@ import multiprocessing
 from ma_htn import *
 from itertools import product
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 
-experiment_id = 5 # to select a single experiment
+experiment_id = 1 # to select a single experiment
 RUN_ALL = False
 RUN_DEMO_ONLY = True
 
@@ -106,7 +106,7 @@ if experiment_id == 2 or RUN_ALL:
         run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks, nb_trials, colours_list)
         # handicapped agents
         action_limitations[1] = ['red']
-        action_limitations[0] = ['yellow'] 
+        action_limitations[0] = ['yellow']
         run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
 
         return 0

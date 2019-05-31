@@ -47,7 +47,7 @@
 6) detect & escape infinite loops in find_resolution
   - when every agent has proposed None?
     - I've tried this and the constraint is too harsh
-    - it is possible too find a plan when all agents have proposed None once:
+    - it is possible to find a plan when all agents have proposed None once:
     - 2-agent example:
         agent 0 proposes None
         agent 1 proposes an action

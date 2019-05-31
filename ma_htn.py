@@ -4,6 +4,8 @@ from pyhop import *
 import logging, time, csv, os, random
 from string import ascii_lowercase
 import numpy as np
+from shutil import copyfile
+
 
 import blocks_world_operators
 import blocks_world_methods
@@ -269,3 +271,25 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
             save_plan(worst_plan, nb_agents, path_to_worst_plan)
             single_agent_plan = convert(single_agent_plan)
             save_plan(single_agent_plan, 1, path_to_single_agent_plan)
+
+
+def combine_results(folder):
+
+    new_csv = os.path.join(folder, 'combined.csv')
+    count = 0
+
+    for dir in [name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name)) and not name[0]=='.']:
+        if count == 0:
+            count += 1
+            copyfile(os.path.join(folder,dir,'results.csv'), new_csv)
+        else:
+            with open(os.path.join(folder,dir,'results.csv'),'r') as csvfile:
+                 reader = csv.reader(csvfile, delimiter=',')
+                 header = 0
+                 for row in reader:
+                     if header > 0:
+                         with open(new_csv,'a',newline='') as csv2:
+                             writer = csv.writer(csv2, delimiter=',')
+                             writer.writerow(row)
+                     else:
+                         header += 1

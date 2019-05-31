@@ -86,6 +86,7 @@ if experiment_id == 3 or RUN_ALL:
     pool = multiprocessing.Pool(4)
     out = zip(pool.map(experiment_wrapper, range(2, 9))) #iterate over nb agents in parallel
 
+    combine_results('./experiment' + str(experiment_id) + '/' )
 
 if experiment_id == 4 or RUN_ALL:
     if RUN_ALL:

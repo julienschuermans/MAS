@@ -278,12 +278,18 @@ def combine_results(folder):
     new_csv = os.path.join(folder, 'combined.csv')
     count = 0
 
-    for dir in sorted([name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name)) and not name[0]=='.']):
+    subdirs = []
+
+    for dir,_,files in os.walk(folder):
+        if 'results.csv' in files:
+            subdirs.append(dir)
+
+    for dir in sorted(subdirs):
         if count == 0:
             count += 1
-            copyfile(os.path.join(folder,dir,'results.csv'), new_csv)
+            copyfile(os.path.join(dir,'results.csv'), new_csv)
         else:
-            with open(os.path.join(folder,dir,'results.csv'),'r') as csvfile:
+            with open(os.path.join(dir,'results.csv'),'r') as csvfile:
                  reader = csv.reader(csvfile, delimiter=',')
                  header = 0
                  for row in reader:

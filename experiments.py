@@ -126,14 +126,15 @@ if experiment_id == 4 or RUN_ALL:
 if experiment_id == 5 or RUN_ALL:
     if RUN_ALL:
         experiment_id = 5
-    ##### EXPERIMENT 3
+    ##### EXPERIMENT 5
     """Test to see how the planning algorithm performs in function of the number of agents."""
 
-    # nb_blocks = 20
+    nb_blocks = 20
     nb_trials = 5
 
     def experiment_wrapper_helper(tup):
         return experiment_wrapper(*tup)
+
     def experiment_wrapper(nb_blocks,nb_agents):
 
         state, goal = generate_solvable_problem(nb_blocks)
@@ -147,3 +148,5 @@ if experiment_id == 5 or RUN_ALL:
 
     pool = multiprocessing.Pool(4)
     out = zip(pool.map(experiment_wrapper_helper,product(range(10,100,10),range(2, 9)))) #iterate over nb agents in parallel
+
+    combine_results('./experiment' + str(experiment_id) + '/' )

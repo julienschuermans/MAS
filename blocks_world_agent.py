@@ -355,12 +355,15 @@ class MultiAgentNegotiation():
         while not all_agents_happy:
 
             if nb_times_fail > 5*len(self.agents):
+                # the problem is unsolvable, can be the case when the constraints are too restrictive
                 for agent in self.agents:
                     if agent.get_name() in last_x_chosen_ones[-5*len(self.agents):]:
                         everyone_chosen+=1
                 if everyone_chosen==len(self.agents):
+                    # exiting the loop when too many iterations "None" is returned as proposal, 
+                    # and every agent has made a proposal at least once in the last 5*nb_agents steps
                     logging.info('No solution is found')
-                    return self.agents[0].final_plan
+                    return None     # if you want to see which blocks can't be moved anymore: return self.agents[0].final_plan
             #  pick a random agent from the list
             the_chosen_one = random.choice(self.agents)
             last_x_chosen_ones.append(the_chosen_one.get_name())

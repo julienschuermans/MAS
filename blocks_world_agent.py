@@ -150,6 +150,7 @@ class Agent():
 
     def make_proposal(self):
         # Returns a tuple of (action, timeslot).
+        # Agent looks at its restricted actions (and restricted colours)
         # Don't prosope an action that has already been scheduled
         # Don't propose anything that's in the list of rejected proposals.
         # Don't propose anything that conflicts with the 'final_plan' as agreed upon until now.
@@ -209,9 +210,8 @@ class Agent():
                         continue
 
                     if t > max(self.final_plan.keys()) + 4: #only consider actions close to end of current final plan
-                        break #TODO how to tune this parameter?
+                        break
 
-                    # print(str(self.partial_plan[index][0]), self.restricted_actions)
                     if str(self.partial_plan[index][0]) in self.restricted_actions:
                         logging.debug('agent cannot execute this action')
                         continue

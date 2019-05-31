@@ -84,7 +84,7 @@ tasks = [('move_blocks', goal)]
 
 def experiment_wrapper(nb_agents):
     action_limitations = [ [] for i in range(nb_agents) ]
-    run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials)
+    run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
     return 0
 
 

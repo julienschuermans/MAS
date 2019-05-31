@@ -165,7 +165,7 @@ def write_csv_header(path):
         'avg compression', \
         'avg plan density'])
 
-def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb_trials=1):
+def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb_trials=1, colours=[]):
     """
     computes metrics, averaging over nb_trials
     writes a single new line with all results to the given csv file
@@ -187,11 +187,10 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
         agents[name].assign_actions(restricted_actions)
         state.holding[name] = False #by default, in the beginning, an agent isn't holding anything
 
-    if len(colours) >0:
+    if len(colours)>0:
         for i in range(1,nb_blocks+1):
             colour =random.choice(colours)
             state.colours[i]=colour
-        print(state.colours)
 
     for agent in agents.values():
         if len(colours) >0:

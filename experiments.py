@@ -25,17 +25,22 @@ if experiment_id == 1 or RUN_ALL:
     nb_blocks = 10
     nb_trials = 5
 
-    state, goal = generate_solvable_problem(nb_blocks)
-    tasks = [('move_blocks', goal)]
+    def experiment_wrapper(nb_blocks):
+        state, goal = generate_solvable_problem(nb_blocks)
+        tasks = [('move_blocks', goal)]
+        action_limitations = [ [] for i in range(nb_agents) ]
+        # no limitations
+        run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
+        # handicapped agents
+        action_limitations[1] = ['swap']
+        action_limitations[0] = ['unstack']
+        run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
 
-    # no limitations
-    action_limitations = [ [] for i in range(nb_agents) ]
-    run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
+        return 0
 
-    # handicapped agents
-    action_limitations[1] = ['swap']
-    action_limitations[0] = ['unstack']
-    run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
+    pool = multiprocessing.Pool(4)
+    out = zip(pool.map(experiment_wrapper, [10]*10)) #perform 10 experiments with 10 blocks in parallel
+
 
 if experiment_id == 2 or RUN_ALL:
     if RUN_ALL:
@@ -53,17 +58,22 @@ if experiment_id == 2 or RUN_ALL:
     nb_blocks = 10
     nb_trials = 5
 
-    state, goal = generate_solvable_problem(nb_blocks, colours_list)
-    tasks = [('move_blocks', goal)]
 
-    # no limitations
-    action_limitations = [ [] for i in range(nb_agents) ]
-    run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
+    def experiment_wrapper(nb_blocks):
+        state, goal = generate_solvable_problem(nb_blocks, colours_list)
+        tasks = [('move_blocks', goal)]
+        action_limitations = [ [] for i in range(nb_agents) ]
+        # no limitations
+        run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks, nb_trials, colours_list)
+        # handicapped agents
+        action_limitations[1] = ['red']
+        action_limitations[0] = ['yellow'] 
+        run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
 
-    # handicapped agents
-    action_limitations[1] = ['red']
-    action_limitations[0] = ['yellow']
-    run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials, colours_list)
+        return 0
+
+    pool = multiprocessing.Pool(4)
+    out = zip(pool.map(experiment_wrapper, [10]*10)) #perform 10 experiments with 10 blocks in parallel
 
 if experiment_id == 3 or RUN_ALL:
     if RUN_ALL:

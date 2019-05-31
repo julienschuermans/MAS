@@ -1,10 +1,11 @@
 import multiprocessing
 from ma_htn import *
+from itertools import product
 
 logging.basicConfig(level=logging.ERROR)
 
-experiment_id = 0 # to select a single experiment
-RUN_ALL = True
+experiment_id = 5 # to select a single experiment
+RUN_ALL = False
 
 colours_list = ['red', 'blue', 'yellow']
 
@@ -119,3 +120,29 @@ if experiment_id == 4 or RUN_ALL:
     os.remove(os.path.join(path_to_results,'best_plan.csv'))
     os.remove(os.path.join(path_to_results,'worst_plan.csv'))
     os.remove(os.path.join(path_to_results,'single_agent_plan.csv'))
+
+
+if experiment_id == 5 or RUN_ALL:
+    if RUN_ALL:
+        experiment_id = 5
+    ##### EXPERIMENT 3
+    """Test to see how the planning algorithm performs in function of the number of agents."""
+
+    # nb_blocks = 20
+    nb_trials = 5
+
+    def experiment_wrapper_helper(tup):
+        return experiment_wrapper(*tup)
+    def experiment_wrapper(nb_blocks,nb_agents):
+
+        state, goal = generate_solvable_problem(nb_blocks)
+        tasks = [('move_blocks', goal)]
+
+        path_to_results = './experiment' + str(experiment_id) + '/' + str(nb_blocks) + 'blocks/' +str(nb_agents) +'agents/'
+        write_csv_header(path_to_results) #make a separate folder for each trial
+        action_limitations = [ [] for i in range(nb_agents) ]
+        run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
+        return 0
+
+    pool = multiprocessing.Pool(4)
+    out = zip(pool.map(experiment_wrapper_helper,product(range(10,100,10),range(2, 9)))) #iterate over nb agents in parallel

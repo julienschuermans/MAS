@@ -62,28 +62,35 @@ tasks3 = [('move_blocks', goal3)]
 #
 # action_limitations[1] = ['swap']
 # action_limitations[0] = ['unstack']
-# run_experiment(path_to_results_constraints,path_to_best_plan_constraints,state,tasks,action_limitations, nb_blocks, nb_trials)
+# run_experiment(path_to_results_constrained,state,tasks,action_limitations, nb_blocks, nb_trials)
 
 
 ##### EXPERIMENT 2
 """Test to see how the planning algorithm performs in function of the number of agents."""
-experiment_id = 2
+experiment_id = 3
 
-path_to_results = './results_' + str(experiment_id) + '.csv'
-path_to_best_plan = './best_plan_' + str(experiment_id) + '.csv'
+path_to_results = './experiment' + str(experiment_id) + '/'
 
 write_csv_header(path_to_results)
 
 nb_blocks = 20
-nb_trials = 10
+nb_trials = 5
 
 state, goal = generate_solvable_problem(nb_blocks)
 tasks = [('move_blocks', goal)]
 
 def experiment_wrapper(nb_agents):
     action_limitations = [ [] for i in range(nb_agents) ]
-    run_experiment(path_to_results,path_to_best_plan,state,tasks,action_limitations,nb_blocks,nb_trials)
+    run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials)
     return 0
 
 pool = multiprocessing.Pool(4)
 out = zip(pool.map(experiment_wrapper, range(2, 9)))
+
+
+##### EXPERIMENT 3
+"""
+Test to see how consistent our problem-generating code is.
+If you select a fixed number of blocks and generate N problems,
+how does the diffulty of the problems vary?
+"""

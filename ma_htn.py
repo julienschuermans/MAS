@@ -35,6 +35,13 @@ def save_plan(plan,nb_agents,path_to_plan):
         for i in range(nb_agents):
             writer.writerow(['A' + str(i)] + [fill(i,t) for t in range(nb_timesteps)])
 
+def convert_single_agent_plan(plan):
+
+    agent = Agent('A0')
+    better_plan = {}
+    for t in range(len(plan)):
+        better_plan[t] = [bwt.Action(agent,plan[t])]
+    return better_plan
 
 def generate_state(nb_blocks):
     state = State('generated_state')
@@ -129,7 +136,12 @@ def generate_solvable_problem(nb_blocks):
 
 def write_csv_header(path):
     # write the column headers in the csv with metrics
-    with open(path, 'w', newline='') as csvfile:
+
+    file = os.path.join(path,'results.csv')
+
+    os.mkdir(path)
+
+    with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow( \
         ['problem size', \
@@ -145,12 +157,17 @@ def write_csv_header(path):
         'avg compression', \
         'avg plan density'])
 
-def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations, nb_blocks, nb_trials=1):
+def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb_trials=1):
     """
     computes metrics, averaging over nb_trials
     writes a single new line with all results to the given csv file
     stores the shortest plan as a csv
     """
+
+    path_to_best_plan = os.path.join(path_to_results,'best_plan.csv')
+    path_to_worst_plan = os.path.join(path_to_results,'worst_plan.csv')
+    path_to_single_agent_plan = os.path.join(path_to_results,'single_agent_plan.csv')
+    path_to_csv = os.path.join(path_to_results,'results.csv')
 
     nb_agents = len(action_limitations)
     # agent initialisation
@@ -166,7 +183,9 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
         agent.observe(state) #what happens when agents don't observe everything?
         agent.plan(tasks) #use pyphop to generate a personal plan
 
-    single_agent_plan_length = len(agents['A0'].partial_plan)
+    single_agent_plan = agents['A0'].partial_plan
+    single_agent_plan_length = len(single_agent_plan)
+
     if single_agent_plan_length == 0:
         # the partial plan is an empty list: no actions required to reach goal state
         logging.warning("skipping useless experiment")
@@ -182,6 +201,7 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
         plan_lengths = []
 
         best_plan = None
+        worst_plan = None
 
         for trial in range(nb_trials):
 
@@ -197,6 +217,8 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
                 plan_lengths.append(len(plan))
                 if best_plan is None or len(plan) < len(best_plan):
                     best_plan = plan
+                if worst_plan is None or len(plan) > len(best_plan):
+                    worst_plan = plan
             else:
                 logging.info('trial ' + str(trial) + ' did not find a solution')
 
@@ -219,4 +241,8 @@ def run_experiment(path_to_csv,path_to_best_plan,state,tasks,action_limitations,
                 )
 
         save_plan(best_plan, nb_agents, path_to_best_plan)
+        save_plan(worst_plan, nb_agents, path_to_worst_plan)
+        single_agent_plan = convert_single_agent_plan(single_agent_plan)
+        save_plan(single_agent_plan, 1, path_to_single_agent_plan)
+
         return 0

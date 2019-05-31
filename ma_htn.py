@@ -240,37 +240,39 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
                 if worst_plan is None or len(plan) > len(worst_plan):
                     worst_plan = plan
             else:
-                logging.info('trial ' + str(trial) + ' did not find a solution')
+                logging.debug('trial ' + str(trial) + ' did not find a solution')
 
+        if len(plan_lengths) > 0:
+            with open(path_to_csv, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
+                writer.writerow( \
+                    [str(nb_blocks)] \
+                    + [str(single_agent_plan_length)] \
+                    + [str(nb_agents)] \
+                    + [str(nb_trials)] \
+                    + ['{:.4f}'.format(np.min(time_measurements))] \
+                    + ['{:.4f}'.format(np.max(time_measurements))] \
+                    + ['{:.4f}'.format(np.mean(time_measurements))] \
+                    + ['{:.0f}'.format(np.ceil(np.min(plan_lengths)))] \
+                    + ['{:.0f}'.format(np.ceil(np.max(plan_lengths)))] \
+                    + ['{:.0f}'.format(np.ceil(np.mean(plan_lengths)))] \
+                    + ['{:.4f}'.format(single_agent_plan_length/np.ceil(np.mean(plan_lengths)))] \
+                    + ['{:.4f}'.format(single_agent_plan_length/(np.ceil(np.mean(plan_lengths))*nb_agents))] \
+                    )
 
-        with open(path_to_csv, 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',')
-            writer.writerow( \
-                [str(nb_blocks)] \
-                + [str(single_agent_plan_length)] \
-                + [str(nb_agents)] \
-                + [str(nb_trials)] \
-                + ['{:.4f}'.format(np.min(time_measurements))] \
-                + ['{:.4f}'.format(np.max(time_measurements))] \
-                + ['{:.4f}'.format(np.mean(time_measurements))] \
-                + ['{:.0f}'.format(np.ceil(np.min(plan_lengths)))] \
-                + ['{:.0f}'.format(np.ceil(np.max(plan_lengths)))] \
-                + ['{:.0f}'.format(np.ceil(np.mean(plan_lengths)))] \
-                + ['{:.4f}'.format(single_agent_plan_length/np.ceil(np.mean(plan_lengths)))] \
-                + ['{:.4f}'.format(single_agent_plan_length/(np.ceil(np.mean(plan_lengths))*nb_agents))] \
-                )
-
-        if colours != []:
-            colour_dict = state.colours
-            save_plan(best_plan, nb_agents, path_to_best_plan,colour_dict)
-            save_plan(worst_plan, nb_agents, path_to_worst_plan,colour_dict)
-            single_agent_plan = convert(single_agent_plan)
-            save_plan(single_agent_plan, 1, path_to_single_agent_plan,colour_dict)
+            if colours != []:
+                colour_dict = state.colours
+                save_plan(best_plan, nb_agents, path_to_best_plan,colour_dict)
+                save_plan(worst_plan, nb_agents, path_to_worst_plan,colour_dict)
+                single_agent_plan = convert(single_agent_plan)
+                save_plan(single_agent_plan, 1, path_to_single_agent_plan,colour_dict)
+            else:
+                save_plan(best_plan, nb_agents, path_to_best_plan)
+                save_plan(worst_plan, nb_agents, path_to_worst_plan)
+                single_agent_plan = convert(single_agent_plan)
+                save_plan(single_agent_plan, 1, path_to_single_agent_plan)
         else:
-            save_plan(best_plan, nb_agents, path_to_best_plan)
-            save_plan(worst_plan, nb_agents, path_to_worst_plan)
-            single_agent_plan = convert(single_agent_plan)
-            save_plan(single_agent_plan, 1, path_to_single_agent_plan)
+            logging.warning('No solutions found in ' + str(nb_trials) + ' trials')
 
 
 def combine_results(folder):

@@ -144,10 +144,8 @@ def generate_solvable_problem(nb_blocks, colours=[]):
 
 def write_csv_header(path):
     # write the column headers in the csv with metrics
-
     file = os.path.join(path,'results.csv')
-
-    os.mkdir(path)
+    os.makedirs(path)
 
     with open(file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')

@@ -160,6 +160,7 @@ def write_csv_header(path):
         ['problem size', \
         'single agent plan length', \
         '#agents', \
+        'constraints',\
         '#trials', \
         'min time', \
         'max time', \
@@ -188,11 +189,14 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
     # agent initialisation
     agents = {} # dictionary of names mapping to Agent() objects
 
+    constraints = 0
     for i,restricted_actions in enumerate(action_limitations):
         name = 'A'+str(i)
         agents[name] = Agent(name)
         agents[name].assign_actions(restricted_actions)
         state.holding[name] = False #by default, in the beginning, an agent isn't holding anything
+        if len(restricted_actions)>0:
+            constraints = 1
 
 
 
@@ -249,6 +253,7 @@ def run_experiment(path_to_results,state,tasks,action_limitations, nb_blocks, nb
                     [str(nb_blocks)] \
                     + [str(single_agent_plan_length)] \
                     + [str(nb_agents)] \
+                    + [str(constraints)]
                     + [str(nb_trials)] \
                     + ['{:.4f}'.format(np.min(time_measurements))] \
                     + ['{:.4f}'.format(np.max(time_measurements))] \

@@ -89,10 +89,10 @@ def process_results(path, filename, desired_plots, avg=False):
             line_ids = np.unique(groupvals)
             for i in line_ids:
                 # ax.set_yscale('log')
-                ax.plot(xvals[np.where(groupvals==i)], yvals[0][np.where(groupvals==i)], label=group + '=' + '{:d}'.format(int(i)))
+                ax.scatter(xvals[np.where(groupvals==i)], yvals[0][np.where(groupvals==i)], label=group + '=' + '{:d}'.format(int(i)))
         else:
             for i in range(len(var_y)):
-                ax.plot(xvals, yvals[i], label=var_y[i])
+                ax.scatter(xvals, yvals[i], label=var_y[i])
         ax.set_xlabel(var_x)
 
         if len(var_y) == 1:
@@ -123,15 +123,15 @@ def combine_results(folder):
     subdirs = []
 
     for dir,_,files in os.walk(folder):
-        if 'averaged.csv' in files:
+        if 'results.csv' in files:
             subdirs.append(dir)
 
     for dir in sorted(subdirs):
         if count == 0:
             count += 1
-            copyfile(os.path.join(dir,'averaged.csv'), new_csv)
+            copyfile(os.path.join(dir,'results.csv'), new_csv)
         else:
-            with open(os.path.join(dir,'averaged.csv'),'r') as csvfile:
+            with open(os.path.join(dir,'results.csv'),'r') as csvfile:
                  reader = csv.reader(csvfile, delimiter=',')
                  header = 0
                  for row in reader:
@@ -170,7 +170,7 @@ def calc_averages(folder):
             writer.writerow(header)
             writer.writerow(summed_data)
 
-RUN_DEMO_ONLY = True
+RUN_DEMO_ONLY = False
 
 if RUN_DEMO_ONLY:
     desired_plots = [
@@ -214,12 +214,14 @@ else:
     # filename = 'combined.csv'
     # process_results('./experiment5/',filename,desired_plots,avg=True)
 
-    calc_averages('experiment6/')
-    combine_results('experiment6/')
+    # calc_averages('experiment6/')
+    combine_results('./experiment02/')
 
     desired_plots = [
-    ('problem size', ['avg compression'], '#agents'),
-    ('problem size', ['avg plan density'], '#agents'),
+    ('single agent plan length', ['avg compression'], 'constraints'),
+    ('single agent plan length', ['avg plan density'], 'constraints'),
+    ('single agent plan length', ['avg time'], 'constraints'),
+    ('single agent plan length', ['avg length'], 'constraints'),
     ]
     filename = 'combined.csv'
-    process_results('./experiment6/',filename,desired_plots)
+    process_results('./experiment02/',filename,desired_plots)

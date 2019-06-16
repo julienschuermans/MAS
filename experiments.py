@@ -171,12 +171,14 @@ if experiment_id == 4 or RUN_ALL:
     path_to_results = './experiment' + str(experiment_id) + '/'
     write_csv_header(path_to_results)
 
-    nb_agents = 5 #doesnt really matter. we're only interested in the single_agent_plan_length anyways
-    nb_trials = 1
-    nb_blocks = [5]*10 + [10]*10 + [15]*10 + [20]*10 + [25]*10 + [30]*10 + [35]*10 + [40]*10 + [45]*10 + [50]*10 \
-    + [55]*10 + [60]*10 + [65]*10 + [70]*10 + [75]*10 + [80]*10 + [85]*10 + [90]*10 + [95]*10 + [100]*10
+    nb_agents = 2 #doesnt really matter. we're only interested in the single_agent_plan_length anyways
+    nb_trials = 5
+    nb_blocks = [5]*5 + [10]*5 + [15]*5 + [20]*5 + [25]*5 + [30]*5 + [35]*5 + [40]*5
 
     action_limitations = [ [] for i in range(nb_agents) ]
+
+    action_limitations[1] = ['red']
+    action_limitations[0] = ['yellow']
 
     def experiment_wrapper(nb_blocks):
         state, goal = generate_solvable_problem(nb_blocks)
@@ -224,7 +226,7 @@ if experiment_id == 6 or RUN_ALL:
     """Test to see how the planning algorithm performs in function of the number of agents and blocks."""
 
     nb_blocks = range(10,50,10)
-    nb_agents = range(2, 9, 2)
+    nb_agents = range(3, 10, 2)
     nb_trials = 5 # solve each problem 5 times to generate statistics
 
     # for each block size, generate N problems to avg it out
@@ -237,6 +239,12 @@ if experiment_id == 6 or RUN_ALL:
         path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/' + '{:02d}'.format(nb_blocks) + 'blocks/' +'{:02d}'.format(nb_agents) +'agents/'
         write_csv_header(path_to_results) #make a separate folder for each trial
         action_limitations = [ [] for i in range(nb_agents) ]
+
+        for i in range(0,nb_agents-1,2):
+            action_limitations[i+1] = ['red']
+            action_limitations[i] = ['yellow']
+        print(action_limitations)
+
 
         for i in range(nb_problems_per_blocksize):
             state, goal = generate_solvable_problem(nb_blocks)

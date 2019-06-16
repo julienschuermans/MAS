@@ -1,12 +1,31 @@
-import multiprocessing
+import multiprocessing, argparse
 from ma_htn import *
 from itertools import product
 
 logging.basicConfig(level=logging.INFO)
 
-experiment_id = 1 # to select a single experiment
-RUN_ALL = False
-RUN_DEMO_ONLY = True
+# setup argparser
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    '-id', '--experiment',
+    help = 'Experiment identifier',
+    default = 'demo'
+)
+args = parser.parse_args()
+current = args.experiment
+
+if current == 'demo':
+    RUN_ALL = False
+    RUN_DEMO_ONLY = True
+    experiment_id = 'demo'
+elif current == 'all':
+    RUN_ALL = True
+    RUN_DEMO_ONLY = False
+    experiment_id = 1
+else:
+    RUN_ALL = False
+    RUN_DEMO_ONLY = False
+    experiment_id = int(current)
 
 colours_list = ['red', 'blue', 'yellow']
 
@@ -40,7 +59,7 @@ if RUN_DEMO_ONLY:
 
     print("This shouldn't take too long. Relax.\n")
     nb_trials = 5
-    for nb_agents in range(2,12,4):
+    for nb_agents in range(2,12,2):
         print("- Solving problem with %d agents" % nb_agents)
         action_limitations = [ [] for i in range(nb_agents) ]
         run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials, colours_list)
@@ -54,14 +73,14 @@ if experiment_id == 1 or RUN_ALL:
     ##### EXPERIMENT 1
     """Test to see what happens when agents have limited capabilities. (e.g. swap-only agents)"""
 
-    path_to_results = './experiment' + str(experiment_id) + '/normal/'
-    path_to_results_constrained = './experiment' + str(experiment_id) + '/constrained/'
+    path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/normal/'
+    path_to_results_constrained = './experiment' + '{:02d}'.format(experiment_id) + '/constrained/'
 
     write_csv_header(path_to_results)
     write_csv_header(path_to_results_constrained)
 
     nb_agents = 5
-    nb_blocks = 10
+    nb_blocks = [10]*10  #perform 10 experiments with 10 blocks
     nb_trials = 5
 
     def experiment_wrapper(nb_blocks):
@@ -78,7 +97,7 @@ if experiment_id == 1 or RUN_ALL:
         return 0
 
     pool = multiprocessing.Pool(4)
-    out = zip(pool.map(experiment_wrapper, [10]*10)) #perform 10 experiments with 10 blocks in parallel
+    out = zip(pool.map(experiment_wrapper, nb_blocks))
 
 
 if experiment_id == 2 or RUN_ALL:
@@ -87,14 +106,14 @@ if experiment_id == 2 or RUN_ALL:
     ##### EXPERIMENT 2
     """Test to see what happens when agents have colour-limited capabilities. (e.g red-only agents)"""
 
-    path_to_results = './experiment' + str(experiment_id) + '/normal/'
-    path_to_results_constrained = './experiment' + str(experiment_id) + '/constrained/'
+    path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/normal/'
+    path_to_results_constrained = './experiment' + '{:02d}'.format(experiment_id) + '/constrained/'
 
     write_csv_header(path_to_results)
     write_csv_header(path_to_results_constrained)
 
-    nb_agents = 5
-    nb_blocks = 10
+    nb_agents = 2
+    nb_blocks = [10]*10 #perform 10 experiments with 10 blocks
     nb_trials = 5
 
 
@@ -112,7 +131,7 @@ if experiment_id == 2 or RUN_ALL:
         return 0
 
     pool = multiprocessing.Pool(4)
-    out = zip(pool.map(experiment_wrapper, [10]*10)) #perform 10 experiments with 10 blocks in parallel
+    out = zip(pool.map(experiment_wrapper, nb_blocks))
 
 if experiment_id == 3 or RUN_ALL:
     if RUN_ALL:
@@ -121,22 +140,23 @@ if experiment_id == 3 or RUN_ALL:
     """Test to see how the planning algorithm performs in function of the number of agents."""
 
     nb_blocks = 20
+    nb_agents = range(2, 9)
     nb_trials = 5
 
     state, goal = generate_solvable_problem(nb_blocks)
     tasks = [('move_blocks', goal)]
 
     def experiment_wrapper(nb_agents):
-        path_to_results = './experiment' + str(experiment_id) + '/' + str(nb_agents) + 'agents/'
+        path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/' + '{:02d}'.format(nb_agents) + 'agents/'
         write_csv_header(path_to_results) #make a separate folder for each trial
         action_limitations = [ [] for i in range(nb_agents) ]
         run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
         return 0
 
     pool = multiprocessing.Pool(4)
-    out = zip(pool.map(experiment_wrapper, range(2, 9))) #iterate over nb agents in parallel
+    out = zip(pool.map(experiment_wrapper, nb_agents)) #iterate over nb agents in parallel
 
-    combine_results('./experiment' + str(experiment_id) + '/' )
+    combine_results('./experiment' + '{:02d}'.format(experiment_id) + '/' )
 
 if experiment_id == 4 or RUN_ALL:
     if RUN_ALL:
@@ -144,16 +164,17 @@ if experiment_id == 4 or RUN_ALL:
     ##### EXPERIMENT 4
     """
     Test to see how consistent our problem-generating code is.
-    If you select a fixed number of blocks and generate N problems,
-    how does the diffulty of the problems vary?
+    If you select a number of blocks and generate 10 problems,
+    how does the diffulty of the problems vary? (diffulty=single_agent_plan_length)
     """
 
     path_to_results = './experiment' + str(experiment_id) + '/'
     write_csv_header(path_to_results)
 
-    nb_agents = 5
-    nb_trials = 5
-    nb_blocks = 10
+    nb_agents = 5 #doesnt really matter. we're only interested in the single_agent_plan_length anyways
+    nb_trials = 1
+    nb_blocks = [5]*10 + [10]*10 + [15]*10 + [20]*10 + [25]*10 + [30]*10 + [35]*10 + [40]*10 + [45]*10 + [50]*10 \
+    + [55]*10 + [60]*10 + [65]*10 + [70]*10 + [75]*10 + [80]*10 + [85]*10 + [90]*10 + [95]*10 + [100]*10
 
     action_limitations = [ [] for i in range(nb_agents) ]
 
@@ -164,21 +185,16 @@ if experiment_id == 4 or RUN_ALL:
         return 0
 
     pool = multiprocessing.Pool(4)
-    out = zip(pool.map(experiment_wrapper, [10]*10)) #perform 10 experiments with 10 blocks in parallel
-
-    # in this case the resulting plans aren't very important
-    os.remove(os.path.join(path_to_results,'best_plan.csv'))
-    os.remove(os.path.join(path_to_results,'worst_plan.csv'))
-    os.remove(os.path.join(path_to_results,'single_agent_plan.csv'))
-
+    out = zip(pool.map(experiment_wrapper, nb_blocks))
 
 if experiment_id == 5 or RUN_ALL:
     if RUN_ALL:
         experiment_id = 5
     ##### EXPERIMENT 5
-    """Test to see how the planning algorithm performs in function of the number of agents."""
+    """Test to see how the planning algorithm performs in function of the number of agents and blocks."""
 
-    nb_blocks = 20
+    nb_blocks = range(10,100,10)
+    nb_agents = range(2, 9)
     nb_trials = 5
 
     def experiment_wrapper_helper(tup):
@@ -189,13 +205,46 @@ if experiment_id == 5 or RUN_ALL:
         state, goal = generate_solvable_problem(nb_blocks)
         tasks = [('move_blocks', goal)]
 
-        path_to_results = './experiment' + str(experiment_id) + '/' + str(nb_blocks) + 'blocks/' +str(nb_agents) +'agents/'
+        path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/' + '{:02d}'.format(nb_blocks) + 'blocks/' +'{:02d}'.format(nb_agents) +'agents/'
         write_csv_header(path_to_results) #make a separate folder for each trial
         action_limitations = [ [] for i in range(nb_agents) ]
         run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
         return 0
 
     pool = multiprocessing.Pool(4)
-    out = zip(pool.map(experiment_wrapper_helper,product(range(10,100,10),range(2, 9)))) #iterate over nb agents in parallel
+    out = zip(pool.map(experiment_wrapper_helper,product(nb_blocks,nb_agents))) #iterate over nb agents in parallel
 
-    combine_results('./experiment' + str(experiment_id) + '/' )
+    combine_results('./experiment' + '{:02d}'.format(experiment_id) + '/' )
+
+
+if experiment_id == 6 or RUN_ALL:
+    if RUN_ALL:
+        experiment_id = 6
+    ##### EXPERIMENT 6
+    """Test to see how the planning algorithm performs in function of the number of agents and blocks."""
+
+    nb_blocks = range(10,50,10)
+    nb_agents = range(2, 9, 2)
+    nb_trials = 5 # solve each problem 5 times to generate statistics
+
+    # for each block size, generate N problems to avg it out
+    nb_problems_per_blocksize = 5
+
+    def experiment_wrapper_helper(tup):
+        return experiment_wrapper(*tup)
+
+    def experiment_wrapper(nb_blocks,nb_agents):
+        path_to_results = './experiment' + '{:02d}'.format(experiment_id) + '/' + '{:02d}'.format(nb_blocks) + 'blocks/' +'{:02d}'.format(nb_agents) +'agents/'
+        write_csv_header(path_to_results) #make a separate folder for each trial
+        action_limitations = [ [] for i in range(nb_agents) ]
+
+        for i in range(nb_problems_per_blocksize):
+            state, goal = generate_solvable_problem(nb_blocks)
+            tasks = [('move_blocks', goal)]
+            run_experiment(path_to_results,state,tasks,action_limitations,nb_blocks,nb_trials,colours_list)
+        return 0
+
+    pool = multiprocessing.Pool(4)
+    out = zip(pool.map(experiment_wrapper_helper,product(nb_blocks,nb_agents)))
+
+    combine_results('./experiment' + '{:02d}'.format(experiment_id) + '/' )
